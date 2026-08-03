@@ -6,11 +6,17 @@ from pydantic import BaseModel, Field
 
 from app.anomaly_detector import router as anomaly_router
 from app.rebalance_optimizer import router as rebalance_router
+from app.digital_twin_simulator import router as digital_twin_router
+from app.copilot_engine import router as copilot_router
+from app.esg_calculator import router as esg_router
 
 app = FastAPI(title="Inventory AI Sidecar")
 
 app.include_router(anomaly_router)
 app.include_router(rebalance_router)
+app.include_router(digital_twin_router)
+app.include_router(copilot_router)
+app.include_router(esg_router)
 
 class LocationInput(BaseModel):
     id: str
