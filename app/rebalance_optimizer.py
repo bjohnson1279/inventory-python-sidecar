@@ -120,6 +120,8 @@ def optimize_rebalance(req: RebalanceRequest):
 
     matrix = {w.id: {} for w in req.warehouses}
     surpluses = []
+    surpluses_by_sku = {}
+    surplus_lookup = {}
     deficits = []
 
     target = req.constraints.min_days_of_cover_target
@@ -135,7 +137,12 @@ def optimize_rebalance(req: RebalanceRequest):
         status = "BALANCED"
         if doc > 2 * target:
             status = "SURPLUS"
-            surpluses.append({"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel})
+            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel}
+            surpluses.append(surplus_entry)
+            surplus_lookup[(stock.sku, stock.warehouse_id)] = surplus_entry
+            if stock.sku not in surpluses_by_sku:
+                surpluses_by_sku[stock.sku] = []
+            surpluses_by_sku[stock.sku].append(surplus_entry)
         elif doc < target:
             status = "DEFICIT"
             deficits.append({"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel})
@@ -157,38 +164,37 @@ def optimize_rebalance(req: RebalanceRequest):
         if needed_qty <= 0:
             continue
 
-        for s in surpluses:
-            if s["sku"] == sku:
-                src_wh = s["wh"]
+        for s in surpluses_by_sku.get(sku, []):
+            src_wh = s["wh"]
+
+            transfer_qty = min(s["avail"] - int(target * max(s["vel"], 0.01)), needed_qty)
+            if transfer_qty < req.constraints.min_transfer_quantity:
+                continue
                 
-                transfer_qty = min(s["avail"] - int(target * max(s["vel"], 0.01)), needed_qty)
-                if transfer_qty < req.constraints.min_transfer_quantity:
-                    continue
-                    
-                cost_pu = costs.get((src_wh, dest_wh), 1.0)
-                transit_days = lead_times.get((src_wh, dest_wh), 1)
-                
-                doc_improvement = transfer_qty / max(d["vel"], 0.01)
-                urgency_weight, priority = get_urgency_weight(d["doc"], target)
-                transit_penalty = transit_days * 0.5
-                
-                score = (doc_improvement * urgency_weight) / (cost_pu + transit_penalty + 0.01)
-                
-                candidates.append({
-                    "sku": sku,
-                    "src": src_wh,
-                    "dest": dest_wh,
-                    "qty": transfer_qty,
-                    "score": score,
-                    "doc_improvement": doc_improvement,
-                    "urgency_weight": urgency_weight,
-                    "priority": priority,
-                    "cost": transfer_qty * cost_pu,
-                    "src_doc": s["doc"],
-                    "dest_doc": d["doc"],
-                    "src_vel": s["vel"],
-                    "dest_vel": d["vel"]
-                })
+            cost_pu = costs.get((src_wh, dest_wh), 1.0)
+            transit_days = lead_times.get((src_wh, dest_wh), 1)
+
+            doc_improvement = transfer_qty / max(d["vel"], 0.01)
+            urgency_weight, priority = get_urgency_weight(d["doc"], target)
+            transit_penalty = transit_days * 0.5
+
+            score = (doc_improvement * urgency_weight) / (cost_pu + transit_penalty + 0.01)
+
+            candidates.append({
+                "sku": sku,
+                "src": src_wh,
+                "dest": dest_wh,
+                "qty": transfer_qty,
+                "score": score,
+                "doc_improvement": doc_improvement,
+                "urgency_weight": urgency_weight,
+                "priority": priority,
+                "cost": transfer_qty * cost_pu,
+                "src_doc": s["doc"],
+                "dest_doc": d["doc"],
+                "src_vel": s["vel"],
+                "dest_vel": d["vel"]
+            })
 
     candidates.sort(key=lambda x: x["score"], reverse=True)
     
@@ -208,10 +214,9 @@ def optimize_rebalance(req: RebalanceRequest):
         already_in = transferred_in[dest].get(sku, 0)
         
         # recalculate available transfer qty
-        for s in surpluses:
-            if s["sku"] == sku and s["wh"] == src:
-                src_avail = s["avail"] - already_out - int(target * max(s["vel"], 0.01))
-                break
+        s = surplus_lookup.get((sku, src))
+        if s:
+            src_avail = s["avail"] - already_out - int(target * max(s["vel"], 0.01))
         else:
             src_avail = 0
             
