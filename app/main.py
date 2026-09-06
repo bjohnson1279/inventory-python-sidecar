@@ -117,6 +117,12 @@ def optimize_slotting(req: OptimizeRequest):
     # Sort items by velocity descending
     items_data.sort(key=lambda x: x["velocity"], reverse=True)
     
+    # Pre-sort items by distance ascending. Since Python's sort is stable,
+    # items with equal distances will retain their velocity-descending order.
+    # This allows us to find the target with the maximum distance difference
+    # (i.e. minimum distance) without iterating through all items (O(N^2) -> O(N log N) + O(N)).
+    items_by_dist = sorted(items_data, key=lambda x: x["distance"])
+
     suggestions = []
     matched_locations = set()
     
@@ -127,22 +133,25 @@ def optimize_slotting(req: OptimizeRequest):
             continue
             
         best_swap = None
-        max_dist_diff = 0.0
         
-        for target in items_data:
+        for target in items_by_dist:
+            # We can break early because all remaining targets are equal to or further than the item
+            if target["distance"] >= item["distance"]:
+                break
+
             if target["location_id"] == item["location_id"]:
                 continue
             if target["location_id"] in matched_locations:
                 continue
                 
-            # If target location is closer to (0,0) and target has lower velocity
-            if target["distance"] < item["distance"] and target["velocity"] < item["velocity"]:
-                dist_diff = item["distance"] - target["distance"]
-                if dist_diff > max_dist_diff:
-                    max_dist_diff = dist_diff
-                    best_swap = target
+            # If target has lower velocity, since we sorted by distance ascending,
+            # this first valid target will have the maximum distance difference.
+            if target["velocity"] < item["velocity"]:
+                best_swap = target
+                break
                     
         if best_swap:
+            max_dist_diff = item["distance"] - best_swap["distance"]
             # Travel savings: 2 * velocity * distance_diff
             savings = item["velocity"] * max_dist_diff * 2
             
