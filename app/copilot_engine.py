@@ -1,11 +1,11 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 
 router = APIRouter(prefix="", tags=["copilot"])
 
 class CopilotRequest(BaseModel):
-    query: str
+    query: str = Field(..., max_length=1000)
 
 class CopilotResponse(BaseModel):
     query: str
@@ -17,6 +17,7 @@ class CopilotResponse(BaseModel):
 @router.post("/copilot/query", response_model=CopilotResponse)
 def query_copilot(req: CopilotRequest):
     q = req.query.lower()
+
     if "risk" in q or "stockout" in q:
         intent = "STOCKOUT_RISK_ANALYSIS"
         insights = f"Analysis for query '{req.query}': Current stockout risk is 1.2% across 1,450 active SKUs. SKU-1002 is approaching reorder threshold."
