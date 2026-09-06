@@ -23,3 +23,13 @@ def test_calculate_emissions():
     data = res.json()
     assert data["total_emissions_co2e_kg"] > 0
     assert "breakdown_by_mode" in data
+
+def test_security_headers():
+    res = client.get("/calculate-emissions?tenant_id=tenant-1")
+    assert res.status_code == 200
+    headers = res.headers
+    assert headers.get("X-Content-Type-Options") == "nosniff"
+    assert headers.get("X-Frame-Options") == "DENY"
+    assert headers.get("X-XSS-Protection") == "1; mode=block"
+    assert headers.get("Strict-Transport-Security") == "max-age=31536000; includeSubDomains"
+    assert headers.get("Content-Security-Policy") == "default-src 'self'"

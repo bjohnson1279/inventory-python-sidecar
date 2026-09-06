@@ -2,6 +2,7 @@ import math
 from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 
 from app.anomaly_detector import router as anomaly_router
@@ -11,6 +12,18 @@ from app.copilot_engine import router as copilot_router
 from app.esg_calculator import router as esg_router
 
 app = FastAPI(title="Inventory AI Sidecar")
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(anomaly_router)
 app.include_router(rebalance_router)
