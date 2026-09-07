@@ -126,6 +126,9 @@ def optimize_slotting(req: OptimizeRequest):
     suggestions = []
     matched_locations = set()
     
+    unmatched_by_dist = list(items_by_dist)
+    skip_count = 0
+
     for item in items_data:
         if item["velocity"] <= 0:
             continue
@@ -134,21 +137,26 @@ def optimize_slotting(req: OptimizeRequest):
             
         best_swap = None
         
-        for target in items_by_dist:
+        # Periodic cleanup of matched items to speed up iteration
+        if skip_count > 1000:
+            unmatched_by_dist = [x for x in unmatched_by_dist if x["location_id"] not in matched_locations]
+            skip_count = 0
+
+        for target in unmatched_by_dist:
             # We can break early because all remaining targets are equal to or further than the item
             if target["distance"] >= item["distance"]:
                 break
 
-            if target["location_id"] == item["location_id"]:
-                continue
             if target["location_id"] in matched_locations:
+                skip_count += 1
                 continue
-                
-            # If target has lower velocity, since we sorted by distance ascending,
-            # this first valid target will have the maximum distance difference.
-            if target["velocity"] < item["velocity"]:
-                best_swap = target
-                break
+
+            if target["location_id"] != item["location_id"]:
+                # If target has lower velocity, since we sorted by distance ascending,
+                # this first valid target will have the maximum distance difference.
+                if target["velocity"] < item["velocity"]:
+                    best_swap = target
+                    break
                     
         if best_swap:
             max_dist_diff = item["distance"] - best_swap["distance"]
