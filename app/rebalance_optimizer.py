@@ -58,11 +58,11 @@ class RebalanceConstraints(BaseModel):
         populate_by_name = True
 
 class RebalanceRequest(BaseModel):
-    warehouses: List[WarehouseInput]
-    stock_levels: List[StockLevelInput]
-    demand_forecasts: List[DemandForecastInput]
-    lead_times: List[LeadTimeInput]
-    shipping_costs: List[ShippingCostInput]
+    warehouses: List[WarehouseInput] = Field(..., max_length=10000)
+    stock_levels: List[StockLevelInput] = Field(..., max_length=10000)
+    demand_forecasts: List[DemandForecastInput] = Field(..., max_length=10000)
+    lead_times: List[LeadTimeInput] = Field(..., max_length=10000)
+    shipping_costs: List[ShippingCostInput] = Field(..., max_length=10000)
     constraints: RebalanceConstraints = RebalanceConstraints()
 
     class Config:

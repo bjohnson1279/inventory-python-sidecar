@@ -41,9 +41,9 @@ class ScanEventInput(BaseModel):
         populate_by_name = True
 
 class AnomalyDetectRequest(BaseModel):
-    ledger_entries: List[LedgerEntryInput]
-    cycle_counts: List[CycleCountInput]
-    scan_events: List[ScanEventInput]
+    ledger_entries: List[LedgerEntryInput] = Field(..., max_length=10000)
+    cycle_counts: List[CycleCountInput] = Field(..., max_length=10000)
+    scan_events: List[ScanEventInput] = Field(..., max_length=10000)
 
 class AnomalyAlert(BaseModel):
     alert_type: str

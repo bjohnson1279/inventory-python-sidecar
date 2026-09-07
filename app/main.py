@@ -57,9 +57,9 @@ class DispatchInput(BaseModel):
         populate_by_name = True
 
 class OptimizeRequest(BaseModel):
-    locations: List[LocationInput]
-    inventory: List[InventoryInput]
-    dispatches: List[DispatchInput]
+    locations: List[LocationInput] = Field(..., max_length=10000)
+    inventory: List[InventoryInput] = Field(..., max_length=10000)
+    dispatches: List[DispatchInput] = Field(..., max_length=10000)
 
 class SlottingSuggestion(BaseModel):
     sku: str
