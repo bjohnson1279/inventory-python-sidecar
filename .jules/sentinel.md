@@ -14,3 +14,8 @@
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
 
+
+## 2024-05-24 - [DoS Protection: Payload Size Limits]
+**Vulnerability:** API endpoints accepted unbounded lists in JSON payloads (e.g., `OptimizeRequest`, `AnomalyDetectRequest`), leading to potential algorithmic complexity Denial of Service (DoS) attacks due to O(N^2) or higher complexity operations on those lists.
+**Learning:** Pydantic's default `List` typing does not enforce length limits. In applications processing large data structures, especially for complex operations like anomaly detection or routing optimization, unbounded lists can lead to CPU or memory exhaustion.
+**Prevention:** Always enforce a reasonable `max_length` (e.g., `max_length=10000`) for all array/list inputs using Pydantic's `Field` validation to protect against payload-based DoS attacks.
