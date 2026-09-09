@@ -6,9 +6,24 @@ import random
 router = APIRouter(prefix="", tags=["digital-twin"])
 
 class SimulationRequest(BaseModel):
-    warehouse_id: str = Field("WH-MAIN", alias="warehouse_id")
-    order_wave_count: int = Field(10, alias="order_wave_count")
-    active_pickers_count: int = Field(5, alias="active_pickers_count")
+    warehouse_id: str = Field(
+        "WH-MAIN",
+        alias="warehouse_id",
+        max_length=50,
+        pattern=r'^[a-zA-Z0-9\-_]+$'
+    )
+    order_wave_count: int = Field(
+        10,
+        alias="order_wave_count",
+        ge=1,
+        le=1000
+    )
+    active_pickers_count: int = Field(
+        5,
+        alias="active_pickers_count",
+        ge=1,
+        le=10000
+    )
 
     class Config:
         populate_by_name = True
