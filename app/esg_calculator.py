@@ -1,12 +1,21 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from typing import Dict, Any
 
 router = APIRouter(prefix="", tags=["sustainability"])
 
 class EsgCalculationRequest(BaseModel):
-    tenant_id: str = Field("tenant-1", alias="tenant_id")
-    period: str = "2026-Q3"
+    tenant_id: str = Field(
+        "tenant-1",
+        alias="tenant_id",
+        max_length=50,
+        pattern=r'^[a-zA-Z0-9\-_]+$'
+    )
+    period: str = Field(
+        "2026-Q3",
+        max_length=20,
+        pattern=r'^[0-9]{4}-Q[1-4]$'
+    )
 
     class Config:
         populate_by_name = True
@@ -21,7 +30,10 @@ class EsgReportResponse(BaseModel):
     breakdown_by_mode: Dict[str, float]
 
 @router.get("/calculate-emissions", response_model=EsgReportResponse)
-def calculate_emissions(tenant_id: str = "tenant-1", period: str = "2026-Q3"):
+def calculate_emissions(
+    tenant_id: str = Query("tenant-1", max_length=50, pattern=r'^[a-zA-Z0-9\-_]+$'),
+    period: str = Query("2026-Q3", max_length=20, pattern=r'^[0-9]{4}-Q[1-4]$')
+):
     transport = 12450.80
     facility = 3820.40
     total = round(transport + facility, 2)
