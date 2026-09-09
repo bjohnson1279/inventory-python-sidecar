@@ -16,3 +16,6 @@
 ## 2025-02-23 - Optimize Slotting Inner Loop
 **Learning:** In optimization loops (like the slotting algorithm in `app/main.py`), repeatedly iterating over items that have already been matched leads to worst-case $O(N^2)$ behavior. Simply skipping over elements via `if target in matched_set: continue` is not sufficient for large inputs because traversing the list itself still takes $O(N)$.
 **Action:** For loops that frequently skip processed items, periodically filter the source list (e.g., using list comprehension) to permanently remove matched items. This pattern reduced execution time by 90%+ in the slotting route.
+## 2024-10-24 - Avoid converting to naive datetime objects for comparison
+**Learning:** In `app/main.py`, converting ISO datetime strings to naive `datetime` objects via `d_date.astimezone(None).replace(tzinfo=None)` in a loop creates significant performance overhead due to the repeated underlying system timezone lookups.
+**Action:** When comparing datetimes, always use timezone-aware UTC objects by initializing the current time with `datetime.now(timezone.utc)` and standardizing incoming parsed dates with `.replace(tzinfo=timezone.utc)` if they lack timezone info.

@@ -1,5 +1,5 @@
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -80,7 +80,7 @@ def optimize_slotting(req: OptimizeRequest):
         
     # 2. Calculate seasonal velocities
     # Items dispatched closer to now get higher weights
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     velocities = {}
     
     for d in req.dispatches:
@@ -88,12 +88,12 @@ def optimize_slotting(req: OptimizeRequest):
             # Handle standard ISO dates and timezone specifiers
             clean_date = d.date.replace("Z", "+00:00")
             d_date = datetime.fromisoformat(clean_date)
+            # Ensure d_date is timezone-aware UTC for accurate comparison
+            # Optimization: avoid astimezone(None) conversions
+            if d_date.tzinfo is None:
+                d_date = d_date.replace(tzinfo=timezone.utc)
         except Exception:
             d_date = now
-            
-        # Convert both datetimes to offset-naive UTC to avoid comparison errors
-        if d_date.tzinfo is not None:
-            d_date = d_date.astimezone(None).replace(tzinfo=None)
             
         days_ago = (now - d_date).days
         # Time-decay factor: decay velocity by 2% per day ago (representing hot/seasonal velocity)
