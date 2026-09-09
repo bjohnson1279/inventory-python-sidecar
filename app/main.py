@@ -32,7 +32,7 @@ app.include_router(copilot_router)
 app.include_router(esg_router)
 
 class LocationInput(BaseModel):
-    id: str
+    id: str = Field(..., max_length=255)
     grid_x: int = Field(..., alias="grid_x")
     grid_y: int = Field(..., alias="grid_y")
     grid_z: int = Field(0, alias="grid_z")
@@ -41,17 +41,17 @@ class LocationInput(BaseModel):
         populate_by_name = True
 
 class InventoryInput(BaseModel):
-    sku: str
-    location_id: str = Field(..., alias="location_id")
+    sku: str = Field(..., max_length=255)
+    location_id: str = Field(..., max_length=255, alias="location_id")
 
     class Config:
         populate_by_name = True
 
 class DispatchInput(BaseModel):
-    sku: str
-    location_id: str = Field(..., alias="location_id")
+    sku: str = Field(..., max_length=255)
+    location_id: str = Field(..., max_length=255, alias="location_id")
     quantity: int
-    date: str
+    date: str = Field(..., max_length=255)
 
     class Config:
         populate_by_name = True
