@@ -8,5 +8,5 @@ def generate_data(num_locs, num_items, num_dispatches):
     dispatches = [DispatchInput(sku=f"SKU{i}", location_id=f"L{i}", quantity=random.randint(1, 100), date="2023-01-01T12:00:00Z") for i in range(num_dispatches)]
     return OptimizeRequest(locations=locations, inventory=inventory, dispatches=dispatches)
 
-req = generate_data(10000, 10000, 10000)
+req = generate_data(5000, 5000, 5000)
 cProfile.run('optimize_slotting(req)', sort='tottime')
