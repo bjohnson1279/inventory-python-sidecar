@@ -194,9 +194,18 @@ def detect_anomalies(req: AnomalyDetectRequest):
         day_counts = {}
         for entry in req.ledger_entries:
             try:
-                dt = datetime.fromisoformat(entry.occurred_at.replace("Z", "+00:00"))
-                hours.append({"hour": dt.hour, "entry": entry})
-                day_str = dt.date().isoformat()
+                # Optimization: Extract hour and date directly via string slicing
+                # The occurred_at format is expected to be ISO 8601 like "2023-10-12T14:30:00Z"
+                # Fallback to datetime parsing if string slicing fails or format is non-standard
+                try:
+                    hour = int(entry.occurred_at[11:13])
+                    day_str = entry.occurred_at[:10]
+                except (ValueError, IndexError):
+                    dt = datetime.fromisoformat(entry.occurred_at.replace("Z", "+00:00"))
+                    hour = dt.hour
+                    day_str = dt.date().isoformat()
+
+                hours.append({"hour": hour, "entry": entry})
                 day_counts[day_str] = day_counts.get(day_str, 0) + 1
             except Exception:
                 pass

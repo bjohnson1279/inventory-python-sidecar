@@ -19,3 +19,7 @@
 ## 2024-09-09 - Caching Datetime Parsing in Python Batch Processes
 **Learning:** Python's `datetime.fromisoformat` and time-zone normalizations are significant CPU bottlenecks when parsing large JSON datasets containing duplicate/repeated string timestamps (common in order/dispatch data). In `app/main.py`'s slotting optimization, this accounted for a large portion of execution time.
 **Action:** Always consider memoizing/caching string-to-datetime conversions in a simple dictionary mapping string inputs to their resulting objects or mathematical values when iterating over large lists with redundant dates.
+
+## 2023-10-25 - [ISO String Parsing Overhead]
+**Learning:** In highly iterated loops (e.g., `detect_anomalies`), utilizing `datetime.fromisoformat()` for standard ISO 8601 strings causes significant object allocation and validation overhead, creating a hidden performance bottleneck.
+**Action:** When strictly standard date formats are guaranteed or easily validatable in a large loop, utilize string slicing (e.g., `entry[:10]` for dates) coupled with a fallback `try-except` block for robust edge-case handling.
