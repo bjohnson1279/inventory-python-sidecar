@@ -8,34 +8,34 @@ from sklearn.ensemble import IsolationForest
 router = APIRouter()
 
 class LedgerEntryInput(BaseModel):
-    sku: str
-    location_id: str = Field(..., alias="location_id")
+    sku: str = Field(..., max_length=255)
+    location_id: str = Field(..., alias="location_id", max_length=255)
     quantity: int
-    reason: str
-    actor_id: str = Field(..., alias="actor_id")
-    occurred_at: str = Field(..., alias="occurred_at")
-    reference_id: Optional[str] = Field(None, alias="reference_id")
+    reason: str = Field(..., max_length=255)
+    actor_id: str = Field(..., alias="actor_id", max_length=255)
+    occurred_at: str = Field(..., alias="occurred_at", max_length=255)
+    reference_id: Optional[str] = Field(None, alias="reference_id", max_length=255)
 
     class Config:
         populate_by_name = True
 
 class CycleCountInput(BaseModel):
-    sku: str
-    location_id: str = Field(..., alias="location_id")
+    sku: str = Field(..., max_length=255)
+    location_id: str = Field(..., alias="location_id", max_length=255)
     expected_quantity: int = Field(..., alias="expected_quantity")
     counted_quantity: int = Field(..., alias="counted_quantity")
-    counted_at: str = Field(..., alias="counted_at")
-    actor_id: str = Field(..., alias="actor_id")
+    counted_at: str = Field(..., alias="counted_at", max_length=255)
+    actor_id: str = Field(..., alias="actor_id", max_length=255)
 
     class Config:
         populate_by_name = True
 
 class ScanEventInput(BaseModel):
-    sku: str
-    location_id: str = Field(..., alias="location_id")
-    scan_context: str = Field(..., alias="scan_context")
-    scanned_at: str = Field(..., alias="scanned_at")
-    actor_id: str = Field(..., alias="actor_id")
+    sku: str = Field(..., max_length=255)
+    location_id: str = Field(..., alias="location_id", max_length=255)
+    scan_context: str = Field(..., alias="scan_context", max_length=1000)
+    scanned_at: str = Field(..., alias="scanned_at", max_length=255)
+    actor_id: str = Field(..., alias="actor_id", max_length=255)
 
     class Config:
         populate_by_name = True
