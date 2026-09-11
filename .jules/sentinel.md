@@ -24,3 +24,7 @@
 **Vulnerability:** API endpoints lacked strict validation on string inputs like IDs and periods.
 **Learning:** Relying solely on type hints without enforcing length limits or regex patterns leaves the application vulnerable to malicious payload-based attacks and data formatting issues.
 **Prevention:** Apply `max_length` and `pattern` (regex) constraints consistently using Pydantic's `Field` for request models and FastAPI's `Query` for route parameters to ensure data integrity and prevent potential exploits.
+## 2025-02-14 - Fix Missing Input Validation on Rebalance Optimizer
+**Vulnerability:** Found multiple Pydantic models in `app/rebalance_optimizer.py` that had missing length limits on strings (e.g., `id`, `name`, `sku`, `warehouse_id`) and missing non-negative bounds on numeric fields (e.g., `on_hand`, `in_transit`, `transit_days`, `cost_per_unit`).
+**Learning:** Pydantic by default accepts arbitrarily long strings and allows negative values for ints/floats unless explicitly constrained with `max_length` and bounds like `ge=0`. Missing these limits exposes the application to string allocation DoS (denial of service) and potential crashes or logic bugs.
+**Prevention:** Always use the `Field(..., max_length=255)` for string fields and `ge=0` (or appropriate bounds) for numerical values that represent physical quantities, weights, times, or costs in request models to enforce secure data boundaries.
