@@ -164,6 +164,8 @@ def optimize_rebalance(req: RebalanceRequest):
         if needed_qty <= 0:
             continue
 
+        urgency_weight, priority = get_urgency_weight(d["doc"], target)
+
         for s in surpluses_by_sku.get(sku, []):
             src_wh = s["wh"]
 
@@ -175,7 +177,6 @@ def optimize_rebalance(req: RebalanceRequest):
             transit_days = lead_times.get((src_wh, dest_wh), 1)
 
             doc_improvement = transfer_qty / max(d["vel"], 0.01)
-            urgency_weight, priority = get_urgency_weight(d["doc"], target)
             transit_penalty = transit_days * 0.5
 
             score = (doc_improvement * urgency_weight) / (cost_pu + transit_penalty + 0.01)
