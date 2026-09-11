@@ -133,7 +133,8 @@ def detect_anomalies(req: AnomalyDetectRequest):
         X = np.array(features)
         
         try:
-            iso = IsolationForest(contamination=0.1, random_state=42)
+            # Optimization: Use all CPU cores for IsolationForest fitting to speed up anomaly detection
+            iso = IsolationForest(contamination=0.1, random_state=42, n_jobs=-1)
             iso.fit(X)
             scores = iso.decision_function(X)
             
