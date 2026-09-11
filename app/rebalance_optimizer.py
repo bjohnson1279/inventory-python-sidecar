@@ -5,46 +5,46 @@ from pydantic import BaseModel, Field
 router = APIRouter()
 
 class WarehouseInput(BaseModel):
-    id: str
-    name: str
-    region: Optional[str] = None
+    id: str = Field(..., max_length=255)
+    name: str = Field(..., max_length=255)
+    region: Optional[str] = Field(None, max_length=255)
 
     class Config:
         populate_by_name = True
 
 class StockLevelInput(BaseModel):
-    sku: str
-    warehouse_id: str = Field(..., alias="warehouse_id")
-    on_hand: int = Field(..., alias="on_hand")
-    allocated: int = 0
-    in_transit: int = Field(0, alias="in_transit")
-    safety_stock: int = Field(0, alias="safety_stock")
+    sku: str = Field(..., max_length=255)
+    warehouse_id: str = Field(..., alias="warehouse_id", max_length=255)
+    on_hand: int = Field(..., alias="on_hand", ge=0)
+    allocated: int = Field(0, ge=0)
+    in_transit: int = Field(0, alias="in_transit", ge=0)
+    safety_stock: int = Field(0, alias="safety_stock", ge=0)
 
     class Config:
         populate_by_name = True
 
 class DemandForecastInput(BaseModel):
-    sku: str
-    warehouse_id: str = Field(..., alias="warehouse_id")
-    daily_velocity_7d: float = Field(0.0, alias="daily_velocity_7d")
-    daily_velocity_30d: float = Field(0.0, alias="daily_velocity_30d")
-    daily_velocity_90d: float = Field(0.0, alias="daily_velocity_90d")
+    sku: str = Field(..., max_length=255)
+    warehouse_id: str = Field(..., alias="warehouse_id", max_length=255)
+    daily_velocity_7d: float = Field(0.0, alias="daily_velocity_7d", ge=0.0)
+    daily_velocity_30d: float = Field(0.0, alias="daily_velocity_30d", ge=0.0)
+    daily_velocity_90d: float = Field(0.0, alias="daily_velocity_90d", ge=0.0)
 
     class Config:
         populate_by_name = True
 
 class LeadTimeInput(BaseModel):
-    source_warehouse_id: str = Field(..., alias="source_warehouse_id")
-    dest_warehouse_id: str = Field(..., alias="dest_warehouse_id")
-    transit_days: int = Field(..., alias="transit_days")
+    source_warehouse_id: str = Field(..., alias="source_warehouse_id", max_length=255)
+    dest_warehouse_id: str = Field(..., alias="dest_warehouse_id", max_length=255)
+    transit_days: int = Field(..., alias="transit_days", ge=0)
 
     class Config:
         populate_by_name = True
 
 class ShippingCostInput(BaseModel):
-    source_warehouse_id: str = Field(..., alias="source_warehouse_id")
-    dest_warehouse_id: str = Field(..., alias="dest_warehouse_id")
-    cost_per_unit: float = Field(..., alias="cost_per_unit")
+    source_warehouse_id: str = Field(..., alias="source_warehouse_id", max_length=255)
+    dest_warehouse_id: str = Field(..., alias="dest_warehouse_id", max_length=255)
+    cost_per_unit: float = Field(..., alias="cost_per_unit", ge=0.0)
 
     class Config:
         populate_by_name = True
