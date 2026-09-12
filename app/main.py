@@ -50,7 +50,7 @@ class InventoryInput(BaseModel):
 class DispatchInput(BaseModel):
     sku: str = Field(..., max_length=255)
     location_id: str = Field(..., max_length=255, alias="location_id")
-    quantity: int
+    quantity: int = Field(..., ge=0)
     date: str = Field(..., max_length=255)
 
     class Config:
