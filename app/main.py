@@ -11,6 +11,7 @@ from app.digital_twin_simulator import router as digital_twin_router
 from app.copilot_engine import router as copilot_router
 from app.esg_calculator import router as esg_router
 from app.labor_scheduler import router as labor_router
+from app.yield_optimizer import router as yield_router
 
 app = FastAPI(title="Inventory AI Sidecar")
 
@@ -32,6 +33,7 @@ app.include_router(digital_twin_router)
 app.include_router(copilot_router)
 app.include_router(esg_router)
 app.include_router(labor_router)
+app.include_router(yield_router)
 
 class LocationInput(BaseModel):
     id: str = Field(..., max_length=255)
