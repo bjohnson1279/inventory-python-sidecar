@@ -23,8 +23,8 @@ class ShiftSuggestion(BaseModel):
     predicted_demand: int
 
 class PredictScheduleRequest(BaseModel):
-    operators: List[OperatorInput]
-    demand_forecasts: List[DemandInput]
+    operators: List[OperatorInput] = Field(..., max_length=10000)
+    demand_forecasts: List[DemandInput] = Field(..., max_length=10000)
 
 @router.post("/predict-schedule", response_model=List[ShiftSuggestion])
 def predict_schedule(req: PredictScheduleRequest):

@@ -41,3 +41,8 @@
 ## Hallucinatory Task & Empty PR Directives
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
+
+## 2025-02-28 - [DoS Protection: Pydantic Field Bounds]
+**Vulnerability:** API endpoints handling numerical bounds and string inputs (e.g. `average_picks_per_hour`, `zone` in `labor_scheduler.py`) lacked constraint boundaries.
+**Learning:** Pydantic classes without `Field` constraints expose internal algorithms to edge case errors (e.g., negative metrics impacting heuristics algorithms) and DoS strings.
+**Prevention:** Apply strict limits using `Field(..., ge=0)` and `Field(..., max_length=255)` for inputs mapped to algorithms to enforce integrity and bounds.
