@@ -1,23 +1,23 @@
 from typing import List, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/pricing", tags=["pricing"])
 
 class LiquidationRuleInput(BaseModel):
-    rule_id: str
-    days_to_expiration: int
-    markdown_percentage: float
-    department: Optional[str] = None
-    sku: Optional[str] = None
+    rule_id: str = Field(..., max_length=255)
+    days_to_expiration: int = Field(..., ge=0)
+    markdown_percentage: float = Field(..., ge=0.0, le=100.0)
+    department: Optional[str] = Field(None, max_length=255)
+    sku: Optional[str] = Field(None, max_length=255)
 
 class LotInput(BaseModel):
-    variant_id: str
-    sku: str
-    department: str
-    current_price_cents: int
-    expiration_date: str # ISO format
+    variant_id: str = Field(..., max_length=255)
+    sku: str = Field(..., max_length=255)
+    department: str = Field(..., max_length=255)
+    current_price_cents: int = Field(..., ge=0)
+    expiration_date: str = Field(..., max_length=255) # ISO format
 
 class MarkdownSuggestion(BaseModel):
     variant_id: str

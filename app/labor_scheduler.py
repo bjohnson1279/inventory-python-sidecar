@@ -6,14 +6,14 @@ from pydantic import BaseModel, Field
 router = APIRouter(prefix="/labor", tags=["labor"])
 
 class OperatorInput(BaseModel):
-    operator_id: str
-    average_picks_per_hour: float
+    operator_id: str = Field(..., max_length=255)
+    average_picks_per_hour: float = Field(..., ge=0.0)
 
 class DemandInput(BaseModel):
-    zone: str
-    forecasted_quantity: int
-    period_start: str
-    period_end: str
+    zone: str = Field(..., max_length=255)
+    forecasted_quantity: int = Field(..., ge=0)
+    period_start: str = Field(..., max_length=255)
+    period_end: str = Field(..., max_length=255)
 
 class ShiftSuggestion(BaseModel):
     operator_id: str
