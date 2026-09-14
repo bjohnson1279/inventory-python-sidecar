@@ -50,9 +50,9 @@ class ShippingCostInput(BaseModel):
         populate_by_name = True
 
 class RebalanceConstraints(BaseModel):
-    max_transfers_per_run: int = Field(20, alias="max_transfers_per_run")
-    min_transfer_quantity: int = Field(5, alias="min_transfer_quantity")
-    min_days_of_cover_target: float = Field(14.0, alias="min_days_of_cover_target")
+    max_transfers_per_run: int = Field(20, alias="max_transfers_per_run", ge=1)
+    min_transfer_quantity: int = Field(5, alias="min_transfer_quantity", ge=1)
+    min_days_of_cover_target: float = Field(14.0, alias="min_days_of_cover_target", ge=0.0)
 
     class Config:
         populate_by_name = True

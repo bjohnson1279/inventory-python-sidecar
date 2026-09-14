@@ -22,8 +22,8 @@ class LedgerEntryInput(BaseModel):
 class CycleCountInput(BaseModel):
     sku: str = Field(..., max_length=255)
     location_id: str = Field(..., alias="location_id", max_length=255)
-    expected_quantity: int = Field(..., alias="expected_quantity")
-    counted_quantity: int = Field(..., alias="counted_quantity")
+    expected_quantity: int = Field(..., alias="expected_quantity", ge=0)
+    counted_quantity: int = Field(..., alias="counted_quantity", ge=0)
     counted_at: str = Field(..., alias="counted_at", max_length=255)
     actor_id: str = Field(..., alias="actor_id", max_length=255)
 
