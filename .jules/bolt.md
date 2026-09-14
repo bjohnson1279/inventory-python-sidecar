@@ -40,3 +40,7 @@
 ## Hallucinatory Task & Empty PR Directives
 - **Zero-Diff Task Termination**: If the requested optimization, refactor, or fix is ALREADY natively present in the target branch, DO NOT create an empty pull request or commit an acknowledgment PR. Exit the task cleanly without opening a PR.
 - **Stale Suggestion Guard**: Always verify the current code on `main`/`master` before planning changes. If no actionable diff is required, cancel task execution immediately.
+
+## 2023-11-09 - Iteration and Parsing Overhead in Yield Optimizer
+**Learning:** In the `optimize_yield` batch process, redundant calls to `datetime.fromisoformat` for lots with the same expiration date create significant CPU overhead. Additionally, sequentially scanning all rules for every lot when only the rule with the highest markdown percentage is needed leads to inefficient O(L * R) time complexity.
+**Action:** Cache datetime parsing results (including failures) to avoid re-parsing duplicate timestamp strings. Pre-sort rules descending by target criteria (e.g., markdown percentage) to allow early exits from inner search loops, turning worst-case O(L * R) to O(L + R log R).

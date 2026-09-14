@@ -35,20 +35,31 @@ def optimize_yield(req: OptimizeYieldRequest):
     suggestions = []
     now = datetime.now(timezone.utc)
     
+    # Optimization: Cache datetime parsing to avoid expensive repeated fromisoformat calls
+    expiration_cache = {}
+
+    # Optimization: Pre-sort rules by markdown percentage descending to find the best rule faster
+    # with an early exit
+    sorted_rules = sorted(req.rules, key=lambda x: x.markdown_percentage, reverse=True)
+
     # Simple evaluation engine
     for lot in req.lots:
-        try:
-            exp_dt = datetime.fromisoformat(lot.expiration_date.replace("Z", "+00:00"))
-            days_until_exp = (exp_dt - now).days
-        except Exception:
-            continue # skip unparseable
-            
+        days_until_exp = expiration_cache.get(lot.expiration_date)
+        if days_until_exp is None:
+            try:
+                exp_dt = datetime.fromisoformat(lot.expiration_date.replace("Z", "+00:00"))
+                days_until_exp = (exp_dt - now).days
+                expiration_cache[lot.expiration_date] = days_until_exp
+            except Exception:
+                expiration_cache[lot.expiration_date] = -1 # Cache failed parse as expired to skip
+                continue # skip unparseable
+
         if days_until_exp < 0:
             continue # Already expired, handled by FEFO quarantine
             
         best_rule = None
         
-        for rule in req.rules:
+        for rule in sorted_rules:
             # Rule applies if days_to_expiration threshold is met
             if days_until_exp <= rule.days_to_expiration:
                 # Check optional filters
@@ -57,9 +68,9 @@ def optimize_yield(req: OptimizeYieldRequest):
                 if rule.sku and rule.sku != lot.sku:
                     continue
                 
-                # Use the rule with the highest markdown (most aggressive)
-                if not best_rule or rule.markdown_percentage > best_rule.markdown_percentage:
-                    best_rule = rule
+                # Since rules are sorted by markdown descending, the first match is the best
+                best_rule = rule
+                break
                     
         if best_rule:
             discount_multiplier = (100.0 - best_rule.markdown_percentage) / 100.0
