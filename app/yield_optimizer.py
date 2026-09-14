@@ -35,12 +35,27 @@ def optimize_yield(req: OptimizeYieldRequest):
     suggestions = []
     now = datetime.now(timezone.utc)
     
+    # ⚡ Bolt Optimization: Cache expensive datetime parsing for repeated expiration dates
+    date_cache = {}
+
     # Simple evaluation engine
     for lot in req.lots:
         try:
-            exp_dt = datetime.fromisoformat(lot.expiration_date.replace("Z", "+00:00"))
-            days_until_exp = (exp_dt - now).days
+            if lot.expiration_date in date_cache:
+                days_until_exp = date_cache[lot.expiration_date]
+            else:
+                exp_dt = datetime.fromisoformat(lot.expiration_date.replace("Z", "+00:00"))
+                days_until_exp = (exp_dt - now).days
+                date_cache[lot.expiration_date] = days_until_exp
         except Exception:
+            try:
+                # Cache the failure to avoid repeated failing parsing attempts for unhashable types if possible
+                date_cache[lot.expiration_date] = None
+            except Exception:
+                pass
+            continue # skip unparseable
+
+        if days_until_exp is None:
             continue # skip unparseable
             
         if days_until_exp < 0:
