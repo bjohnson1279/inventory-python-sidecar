@@ -147,9 +147,11 @@ def optimize_slotting(req: OptimizeRequest):
             
         best_swap = None
         
-        # Periodic cleanup of matched items to speed up iteration
+        # Periodic cleanup of matched items and items that can no longer match
+        # (due to the monotonic decreasing nature of item["velocity"]) to speed up iteration
         if skip_count > 1000:
-            unmatched_by_dist = [x for x in unmatched_by_dist if x["location_id"] not in matched_locations]
+            current_vel = item["velocity"]
+            unmatched_by_dist = [x for x in unmatched_by_dist if x["location_id"] not in matched_locations and x["velocity"] < current_vel]
             skip_count = 0
 
         for target in unmatched_by_dist:
@@ -158,6 +160,13 @@ def optimize_slotting(req: OptimizeRequest):
                 break
 
             if target["location_id"] in matched_locations:
+                skip_count += 1
+                continue
+
+            if target["velocity"] >= item["velocity"]:
+                # Target's velocity is >= item's velocity. Since items_data is sorted by velocity
+                # descending, future items will have even lower velocity. This target will NEVER
+                # match this or any future item, so we count it as skipped to trigger cleanup.
                 skip_count += 1
                 continue
 
