@@ -27,8 +27,8 @@ class MarkdownSuggestion(BaseModel):
     reason: str
 
 class OptimizeYieldRequest(BaseModel):
-    rules: List[LiquidationRuleInput]
-    lots: List[LotInput]
+    rules: List[LiquidationRuleInput] = Field(..., max_length=10000)
+    lots: List[LotInput] = Field(..., max_length=10000)
 
 @router.post("/optimize-yield", response_model=List[MarkdownSuggestion])
 def optimize_yield(req: OptimizeYieldRequest):
