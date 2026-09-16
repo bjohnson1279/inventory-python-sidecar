@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 router = APIRouter(prefix="/cv", tags=["Computer Vision Gateway"])
 
 class AnalyzeInboundRequest(BaseModel):
-    image_base64: str = Field(..., description="Base64 encoded image string")
-    po_id: str = Field(None, description="Optional Purchase Order ID for context")
+    image_base64: str = Field(..., max_length=5000000, description="Base64 encoded image string")
+    po_id: str = Field(None, max_length=255, description="Optional Purchase Order ID for context")
 
 class Dimensions(BaseModel):
     length: float
