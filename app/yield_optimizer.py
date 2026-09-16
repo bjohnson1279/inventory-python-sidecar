@@ -59,13 +59,15 @@ def optimize_yield(req: OptimizeYieldRequest):
             
         best_rule = None
         
+        lot_department = lot.department
+        lot_sku = lot.sku
         for rule in sorted_rules:
             # Rule applies if days_to_expiration threshold is met
             if days_until_exp <= rule.days_to_expiration:
                 # Check optional filters
-                if rule.department and rule.department != lot.department:
+                if rule.department and rule.department != lot_department:
                     continue
-                if rule.sku and rule.sku != lot.sku:
+                if rule.sku and rule.sku != lot_sku:
                     continue
                 
                 # Since rules are sorted by markdown descending, the first match is the best

@@ -33,22 +33,34 @@ def predict_schedule(req: PredictScheduleRequest):
     # Sort operators by efficiency (picks per hour) descending
     available_operators = sorted(req.operators, key=lambda x: x.average_picks_per_hour, reverse=True)
     
+    # Optimization: Cache expensive datetime parsing for repeated shift blocks
+    duration_cache = {}
+
     # Simple heuristic greedy assignment
     for demand in req.demand_forecasts:
         remaining_demand = demand.forecasted_quantity
         
         # Calculate duration of the period in hours
+        cache_key = (demand.period_start, demand.period_end)
         try:
-            start_dt = datetime.fromisoformat(demand.period_start.replace("Z", "+00:00"))
-            end_dt = datetime.fromisoformat(demand.period_end.replace("Z", "+00:00"))
-            duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
-            if duration_hours <= 0:
-                duration_hours = 1.0
-        except Exception:
-            duration_hours = 8.0 # fallback
+            duration_hours = duration_cache[cache_key]
+        except (KeyError, TypeError):
+            try:
+                start_dt = datetime.fromisoformat(demand.period_start.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(demand.period_end.replace("Z", "+00:00"))
+                duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
+                if duration_hours <= 0:
+                    duration_hours = 1.0
+            except Exception:
+                duration_hours = 8.0 # fallback
+
+            try:
+                duration_cache[cache_key] = duration_hours
+            except TypeError:
+                pass # Handle potential unhashable types gracefully
 
         # Assign operators until demand is met
-        used_operators_for_shift = []
+        used_count = 0
         for op in available_operators:
             if remaining_demand <= 0:
                 break
@@ -66,10 +78,11 @@ def predict_schedule(req: PredictScheduleRequest):
             ))
             
             remaining_demand -= capacity
-            used_operators_for_shift.append(op)
+            used_count += 1
             
         # Rotate assigned operators out of available pool for this exact time block
-        for op in used_operators_for_shift:
-            available_operators.remove(op)
+        # Optimization: O(1) slice instead of O(N*K) array removes
+        if used_count > 0:
+            available_operators = available_operators[used_count:]
 
     return suggestions
