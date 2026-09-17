@@ -33,19 +33,27 @@ def predict_schedule(req: PredictScheduleRequest):
     # Sort operators by efficiency (picks per hour) descending
     available_operators = sorted(req.operators, key=lambda x: x.average_picks_per_hour, reverse=True)
     
+    # Optimization: Cache datetime parsing to avoid expensive repeated fromisoformat calls
+    duration_cache = {}
+
     # Simple heuristic greedy assignment
     for demand in req.demand_forecasts:
         remaining_demand = demand.forecasted_quantity
         
         # Calculate duration of the period in hours
-        try:
-            start_dt = datetime.fromisoformat(demand.period_start.replace("Z", "+00:00"))
-            end_dt = datetime.fromisoformat(demand.period_end.replace("Z", "+00:00"))
-            duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
-            if duration_hours <= 0:
-                duration_hours = 1.0
-        except Exception:
-            duration_hours = 8.0 # fallback
+        duration_key = (demand.period_start, demand.period_end)
+        duration_hours = duration_cache.get(duration_key)
+
+        if duration_hours is None:
+            try:
+                start_dt = datetime.fromisoformat(demand.period_start.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(demand.period_end.replace("Z", "+00:00"))
+                duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
+                if duration_hours <= 0:
+                    duration_hours = 1.0
+            except Exception:
+                duration_hours = 8.0 # fallback
+            duration_cache[duration_key] = duration_hours
 
         # Assign operators until demand is met
         used_operators_for_shift = []
@@ -69,7 +77,7 @@ def predict_schedule(req: PredictScheduleRequest):
             used_operators_for_shift.append(op)
             
         # Rotate assigned operators out of available pool for this exact time block
-        for op in used_operators_for_shift:
-            available_operators.remove(op)
+        # Optimization: Use pointer/slice instead of O(N^2) list.remove()
+        available_operators = available_operators[len(used_operators_for_shift):]
 
     return suggestions
