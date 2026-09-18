@@ -34,6 +34,7 @@ def predict_schedule(req: PredictScheduleRequest):
     available_operators = sorted(req.operators, key=lambda x: x.average_picks_per_hour, reverse=True)
     
     # Simple heuristic greedy assignment
+    op_idx = 0
     for demand in req.demand_forecasts:
         remaining_demand = demand.forecasted_quantity
         
@@ -48,10 +49,9 @@ def predict_schedule(req: PredictScheduleRequest):
             duration_hours = 8.0 # fallback
 
         # Assign operators until demand is met
-        used_operators_for_shift = []
-        for op in available_operators:
-            if remaining_demand <= 0:
-                break
+        while remaining_demand > 0 and op_idx < len(available_operators):
+            op = available_operators[op_idx]
+            op_idx += 1
             
             # Operator capacity for this shift block
             capacity = op.average_picks_per_hour * duration_hours
@@ -66,10 +66,5 @@ def predict_schedule(req: PredictScheduleRequest):
             ))
             
             remaining_demand -= capacity
-            used_operators_for_shift.append(op)
-            
-        # Rotate assigned operators out of available pool for this exact time block
-        for op in used_operators_for_shift:
-            available_operators.remove(op)
 
     return suggestions

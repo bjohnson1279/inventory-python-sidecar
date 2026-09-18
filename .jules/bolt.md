@@ -48,3 +48,11 @@
 ## 2023-10-24 - Dynamic Inner Loop Culling using Monotonic Outer Loop Data
 **Learning:** When optimizing O(N^2) nested loops (e.g., in matching or slotting algorithms), we can utilize the monotonic properties of sorted outer lists to safely and dynamically cull the inner loop's search space during periodic cleanups. Since the outer list iterates in a guaranteed descending order, any inner loop target that violates the target matching requirement (e.g. `target_val < current_val`) will inherently violate it for all future outer loop iterations, allowing us to permanently drop it from the search space early and significantly decrease iterations.
 **Action:** Always verify if nested iterative matches in FastAPI have sorted outer loops where the inner matching conditions rely on monotonic values, and aggressively cull those targets during scheduled periodic garbage collection cleanups to reduce processing times.
+
+## 2024-05-15 - Replace list.remove() with list slicing
+**Learning:** In sequential consumption loops like `app/labor_scheduler.py`'s `predict_schedule`, using `list.remove()` repeatedly causes O(N^2) time complexity because each removal shifts the remaining elements.
+**Action:** Replace sequential `.remove()` calls with a single O(1) list slice operation (e.g. `list = list[used_count:]`) when items are consumed from the beginning of the list.
+
+## 2024-05-16 - Optimize Resource Assignment with Index Pointers
+**Learning:** Using `list.remove()` or even list slicing inside nested loops for sequential resource consumption can cause O(N^2) complexity or unnecessary memory allocations.
+**Action:** Use an index pointer (e.g., `op_idx = 0`) that persists across the outer loop to track consumption from a sorted list, avoiding list mutations entirely and achieving true O(N) time complexity.
