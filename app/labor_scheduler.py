@@ -7,11 +7,11 @@ router = APIRouter(prefix="/labor", tags=["labor"])
 
 class OperatorInput(BaseModel):
     operator_id: str = Field(..., max_length=255)
-    average_picks_per_hour: float = Field(..., ge=0.0)
+    average_picks_per_hour: float = Field(..., ge=0.0, le=1000000.0)
 
 class DemandInput(BaseModel):
     zone: str = Field(..., max_length=255)
-    forecasted_quantity: int = Field(..., ge=0)
+    forecasted_quantity: int = Field(..., ge=0, le=1000000)
     period_start: str = Field(..., max_length=255)
     period_end: str = Field(..., max_length=255)
 
@@ -20,7 +20,7 @@ class ShiftSuggestion(BaseModel):
     shift_start: str = Field(..., max_length=255)
     shift_end: str = Field(..., max_length=255)
     assigned_zone: str = Field(..., max_length=255)
-    predicted_demand: int = Field(..., ge=0)
+    predicted_demand: int = Field(..., ge=0, le=1000000)
 
 class PredictScheduleRequest(BaseModel):
     operators: List[OperatorInput] = Field(..., max_length=10000)
