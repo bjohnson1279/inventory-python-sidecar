@@ -36,6 +36,9 @@ def predict_schedule(req: PredictScheduleRequest):
     # Optimization: Cache datetime parsing to avoid expensive repeated fromisoformat calls
     duration_cache = {}
 
+    op_idx = 0
+    num_operators = len(available_operators)
+
     # Simple heuristic greedy assignment
     for demand in req.demand_forecasts:
         remaining_demand = demand.forecasted_quantity
@@ -55,11 +58,10 @@ def predict_schedule(req: PredictScheduleRequest):
                 duration_hours = 8.0 # fallback
             duration_cache[duration_key] = duration_hours
 
-        # Assign operators until demand is met
-        used_operators_for_shift = []
-        for op in available_operators:
-            if remaining_demand <= 0:
-                break
+        # Assign operators until demand is met using a persisting index
+        # to avoid O(N) list slicing allocations per shift block
+        while remaining_demand > 0 and op_idx < num_operators:
+            op = available_operators[op_idx]
             
             # Operator capacity for this shift block
             capacity = op.average_picks_per_hour * duration_hours
@@ -74,10 +76,6 @@ def predict_schedule(req: PredictScheduleRequest):
             ))
             
             remaining_demand -= capacity
-            used_operators_for_shift.append(op)
-            
-        # Rotate assigned operators out of available pool for this exact time block
-        # Optimization: Use pointer/slice instead of O(N^2) list.remove()
-        available_operators = available_operators[len(used_operators_for_shift):]
+            op_idx += 1
 
     return suggestions
