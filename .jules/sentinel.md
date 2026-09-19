@@ -46,3 +46,7 @@
 **Vulnerability:** API endpoints handling numerical bounds and string inputs (e.g. `average_picks_per_hour`, `zone` in `labor_scheduler.py`) lacked constraint boundaries.
 **Learning:** Pydantic classes without `Field` constraints expose internal algorithms to edge case errors (e.g., negative metrics impacting heuristics algorithms) and DoS strings.
 **Prevention:** Apply strict limits using `Field(..., ge=0)` and `Field(..., max_length=255)` for inputs mapped to algorithms to enforce integrity and bounds.
+## 2025-02-28 - [DoS Protection: Integer Bound Limits]
+**Vulnerability:** API endpoints mapped unconstrained numerical integer fields directly into calculations and external tools (like IsolationForest in anomaly detector, or grid calculations in optimizers), leading to potential float overflow errors (infinity) or algorithmic DoS.
+**Learning:** Broad exception handling masked silent failures where enormous inputs caused math operations to crash internally, effectively bypassing processing pipelines entirely.
+**Prevention:** Always enforce reasonable min and max boundaries on integer inputs (`ge=-1000000`, `le=1000000`) using Pydantic's `Field` validation to protect math operations and preserve security tool functionality against extreme edge-case payloads.
