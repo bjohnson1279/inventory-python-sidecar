@@ -10,7 +10,7 @@ router = APIRouter()
 class LedgerEntryInput(BaseModel):
     sku: str = Field(..., max_length=255)
     location_id: str = Field(..., alias="location_id", max_length=255)
-    quantity: int
+    quantity: int = Field(..., ge=-1000000, le=1000000)
     reason: str = Field(..., max_length=255)
     actor_id: str = Field(..., alias="actor_id", max_length=255)
     occurred_at: str = Field(..., alias="occurred_at", max_length=255)
@@ -22,8 +22,8 @@ class LedgerEntryInput(BaseModel):
 class CycleCountInput(BaseModel):
     sku: str = Field(..., max_length=255)
     location_id: str = Field(..., alias="location_id", max_length=255)
-    expected_quantity: int = Field(..., alias="expected_quantity", ge=0)
-    counted_quantity: int = Field(..., alias="counted_quantity", ge=0)
+    expected_quantity: int = Field(..., alias="expected_quantity", ge=0, le=1000000)
+    counted_quantity: int = Field(..., alias="counted_quantity", ge=0, le=1000000)
     counted_at: str = Field(..., alias="counted_at", max_length=255)
     actor_id: str = Field(..., alias="actor_id", max_length=255)
 

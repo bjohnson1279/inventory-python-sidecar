@@ -33,3 +33,34 @@ def test_security_headers():
     assert headers.get("X-XSS-Protection") == "1; mode=block"
     assert headers.get("Strict-Transport-Security") == "max-age=31536000; includeSubDomains"
     assert headers.get("Content-Security-Policy") == "default-src 'self'"
+
+def test_anomaly_detector_bounds():
+    payload = {
+        "ledger_entries": [
+            {
+                "sku": "SKU-1",
+                "location_id": "LOC-1",
+                "quantity": 10**10,
+                "reason": "shrinkage",
+                "actor_id": "ACT-1",
+                "occurred_at": "2023-10-12T14:30:00Z"
+            }
+        ],
+        "cycle_counts": [],
+        "scan_events": []
+    }
+    response = client.post("/anomaly-detect", json=payload)
+    assert response.status_code == 422
+
+def test_labor_bounds():
+    payload = {
+        "operators": [
+            {
+                "operator_id": "OP-1",
+                "average_picks_per_hour": 10**10
+            }
+        ],
+        "demand_forecasts": []
+    }
+    response = client.post("/labor/predict-schedule", json=payload)
+    assert response.status_code == 422
