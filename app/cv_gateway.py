@@ -10,14 +10,14 @@ class AnalyzeInboundRequest(BaseModel):
     po_id: str = Field(None, max_length=255, description="Optional Purchase Order ID for context")
 
 class Dimensions(BaseModel):
-    length: float
-    width: float
-    height: float
+    length: float = Field(..., ge=0.0)
+    width: float = Field(..., ge=0.0)
+    height: float = Field(..., ge=0.0)
 
 class AnalyzeInboundResponse(BaseModel):
     dimensions: Dimensions
-    ocr_text: str
-    anomaly_score: float
+    ocr_text: str = Field(..., max_length=5000)
+    anomaly_score: float = Field(..., ge=0.0, le=1.0)
     has_damage: bool
 
 @router.post("/analyze-inbound", response_model=AnalyzeInboundResponse)

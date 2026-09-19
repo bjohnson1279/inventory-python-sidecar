@@ -20,11 +20,11 @@ class LotInput(BaseModel):
     expiration_date: str = Field(..., max_length=255) # ISO format
 
 class MarkdownSuggestion(BaseModel):
-    variant_id: str
-    rule_id: str
-    original_price_cents: int
-    suggested_price_cents: int
-    reason: str
+    variant_id: str = Field(..., max_length=255)
+    rule_id: str = Field(..., max_length=255)
+    original_price_cents: int = Field(..., ge=0)
+    suggested_price_cents: int = Field(..., ge=0)
+    reason: str = Field(..., max_length=1000)
 
 class OptimizeYieldRequest(BaseModel):
     rules: List[LiquidationRuleInput] = Field(..., max_length=10000)

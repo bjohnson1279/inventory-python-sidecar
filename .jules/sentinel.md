@@ -50,3 +50,9 @@
 **Vulnerability:** API endpoints mapped unconstrained numerical integer fields directly into calculations and external tools (like IsolationForest in anomaly detector, or grid calculations in optimizers), leading to potential float overflow errors (infinity) or algorithmic DoS.
 **Learning:** Broad exception handling masked silent failures where enormous inputs caused math operations to crash internally, effectively bypassing processing pipelines entirely.
 **Prevention:** Always enforce reasonable min and max boundaries on integer inputs (`ge=-1000000`, `le=1000000`) using Pydantic's `Field` validation to protect math operations and preserve security tool functionality against extreme edge-case payloads.
+
+## 2025-03-01 - [DoS Protection: Strict Validation for Internal/Response Pydantic Models]
+**Vulnerability:** Internal and Response Pydantic models (e.g., `AnomalyAlert`, `SimulationResponse`) lacked explicit bounds (like `max_length`, `ge`) on string and numerical fields, whereas Request models had them.
+**Learning:** Even if Request models are validated, intermediate algorithms or data transformation layers might generate unexpectedly massive structures (like deeply concatenated strings or overflow numbers) due to internal logical bugs or cascading failures. Unconstrained internal/response models fail to catch this data bloat, risking memory exhaustion or algorithmic complexity DoS during serialization.
+**Prevention:** Apply `Field(..., max_length=X)` and `Field(..., ge=Y)` consistently to *all* Pydantic models (Requests, Responses, and internal schemas) to establish firm boundaries for memory allocation and system egress.
+

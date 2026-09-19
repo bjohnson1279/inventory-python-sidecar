@@ -16,11 +16,11 @@ class DemandInput(BaseModel):
     period_end: str = Field(..., max_length=255)
 
 class ShiftSuggestion(BaseModel):
-    operator_id: str
-    shift_start: str
-    shift_end: str
-    assigned_zone: str
-    predicted_demand: int
+    operator_id: str = Field(..., max_length=255)
+    shift_start: str = Field(..., max_length=255)
+    shift_end: str = Field(..., max_length=255)
+    assigned_zone: str = Field(..., max_length=255)
+    predicted_demand: int = Field(..., ge=0)
 
 class PredictScheduleRequest(BaseModel):
     operators: List[OperatorInput] = Field(..., max_length=10000)
