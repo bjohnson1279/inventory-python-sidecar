@@ -143,7 +143,12 @@ def optimize_slotting(req: OptimizeRequest):
         
         # Periodic cleanup of matched items to speed up iteration
         if skip_count > 1000:
-            unmatched_by_dist = [x for x in unmatched_by_dist if x["location_id"] not in matched_locations]
+            # Optimization: since outer loop iterates by velocity descending, any target
+            # with velocity >= current item's velocity will also be >= all future items' velocities.
+            # We can safely filter them out now to drastically shrink the search space.
+            unmatched_by_dist = [x for x in unmatched_by_dist
+                                 if x["location_id"] not in matched_locations
+                                 and x["velocity"] < item["velocity"]]
             skip_count = 0
 
         for target in unmatched_by_dist:
@@ -161,6 +166,8 @@ def optimize_slotting(req: OptimizeRequest):
                 if target["velocity"] < item["velocity"]:
                     best_swap = target
                     break
+                else:
+                    skip_count += 1
                     
         if best_swap:
             max_dist_diff = item["distance"] - best_swap["distance"]
