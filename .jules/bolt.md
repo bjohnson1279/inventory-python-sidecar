@@ -52,3 +52,6 @@
 ## 2024-05-24 - Efficient List Rotations and Parsing Caching
 **Learning:** Sequential consumption/removal of items from a list inside a loop using `list.remove()` causes algorithmic complexity to drop to O(N²), causing serious bottlenecking for larger processing volumes. Also, repetitive datetime parsing (`datetime.fromisoformat`) for identical date strings acts as a significant overhead point in inner loops.
 **Action:** Always slice lists `list = list[used_count:]` or use indexing for O(1) bulk removals when iterating in greedy algorithms. Additionally, apply dictionary-based caching (memoization) to string-to-datetime conversions for recurring data sets to drastically reduce parse time.
+## 2025-02-23 - Avoid List Slicing in Greedy Consumption Loops
+**Learning:** Using list slicing (e.g. `list = list[used:]`) to consume elements within a loop allocates a new list every iteration, leading to O(M*N) time complexity and unnecessary memory overhead.
+**Action:** When sequentially consuming items from a list within a loop, use an index pointer (e.g., `op_idx = 0`) that persists across the outer loop to achieve true O(N) complexity without mutating the list or allocating new ones.
