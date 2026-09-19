@@ -39,9 +39,9 @@ app.include_router(cv_router)
 
 class LocationInput(BaseModel):
     id: str = Field(..., max_length=255)
-    grid_x: int = Field(..., alias="grid_x")
-    grid_y: int = Field(..., alias="grid_y")
-    grid_z: int = Field(0, alias="grid_z")
+    grid_x: int = Field(..., alias="grid_x", ge=-100000, le=100000)
+    grid_y: int = Field(..., alias="grid_y", ge=-100000, le=100000)
+    grid_z: int = Field(0, alias="grid_z", ge=-100000, le=100000)
 
     class Config:
         populate_by_name = True
