@@ -8,11 +8,11 @@ class CopilotRequest(BaseModel):
     query: str = Field(..., max_length=1000)
 
 class CopilotResponse(BaseModel):
-    query: str
-    intent: str
-    insights: str
-    metricData: Dict[str, Any]
-    suggestedActions: List[str]
+    query: str = Field(..., max_length=1000)
+    intent: str = Field(..., max_length=255)
+    insights: str = Field(..., max_length=5000)
+    metricData: Dict[str, Any] = Field(...)
+    suggestedActions: List[str] = Field(..., max_length=100)
 
 @router.post("/copilot/query", response_model=CopilotResponse)
 def query_copilot(req: CopilotRequest):

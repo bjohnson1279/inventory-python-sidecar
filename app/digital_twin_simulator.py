@@ -29,14 +29,14 @@ class SimulationRequest(BaseModel):
         populate_by_name = True
 
 class SimulationResponse(BaseModel):
-    scenario_id: str
-    duration_seconds: int
-    total_orders_processed: int
-    average_fulfillment_time_minutes: float
-    bottleneck_bin_id: str
-    throughput_per_hour: float
-    picker_utilization_rate: float
-    congestion_hotspots: List[str]
+    scenario_id: str = Field(..., max_length=255)
+    duration_seconds: int = Field(..., ge=0)
+    total_orders_processed: int = Field(..., ge=0)
+    average_fulfillment_time_minutes: float = Field(..., ge=0.0)
+    bottleneck_bin_id: str = Field(..., max_length=255)
+    throughput_per_hour: float = Field(..., ge=0.0)
+    picker_utilization_rate: float = Field(..., ge=0.0, le=1.0)
+    congestion_hotspots: List[str] = Field(..., max_length=1000)
 
 @router.post("/simulate-warehouse", response_model=SimulationResponse)
 def simulate_warehouse(req: SimulationRequest):

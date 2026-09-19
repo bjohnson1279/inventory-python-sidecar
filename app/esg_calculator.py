@@ -21,13 +21,13 @@ class EsgCalculationRequest(BaseModel):
         populate_by_name = True
 
 class EsgReportResponse(BaseModel):
-    tenant_id: str
-    period: str
-    transport_emissions_co2e_kg: float
-    facility_emissions_co2e_kg: float
-    total_emissions_co2e_kg: float
-    emissions_intensity_per_order: float
-    breakdown_by_mode: Dict[str, float]
+    tenant_id: str = Field(..., max_length=50)
+    period: str = Field(..., max_length=20)
+    transport_emissions_co2e_kg: float = Field(..., ge=0.0)
+    facility_emissions_co2e_kg: float = Field(..., ge=0.0)
+    total_emissions_co2e_kg: float = Field(..., ge=0.0)
+    emissions_intensity_per_order: float = Field(..., ge=0.0)
+    breakdown_by_mode: Dict[str, float] = Field(...)
 
 @router.get("/calculate-emissions", response_model=EsgReportResponse)
 def calculate_emissions(

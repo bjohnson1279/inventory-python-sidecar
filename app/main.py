@@ -68,14 +68,14 @@ class OptimizeRequest(BaseModel):
     dispatches: List[DispatchInput] = Field(..., max_length=10000)
 
 class SlottingSuggestion(BaseModel):
-    sku: str
-    currentLocationId: str
-    currentDistance: float
-    currentVelocity: float
-    recommendedLocationId: str
-    recommendedDistance: float
-    potentialSwapSku: Optional[str] = None
-    estimatedSavings: float
+    sku: str = Field(..., max_length=255)
+    currentLocationId: str = Field(..., max_length=255)
+    currentDistance: float = Field(..., ge=0.0)
+    currentVelocity: float = Field(..., ge=0.0)
+    recommendedLocationId: str = Field(..., max_length=255)
+    recommendedDistance: float = Field(..., ge=0.0)
+    potentialSwapSku: Optional[str] = Field(None, max_length=255)
+    estimatedSavings: float = Field(...)
 
 @app.post("/optimize", response_model=List[SlottingSuggestion])
 def optimize_slotting(req: OptimizeRequest):

@@ -69,25 +69,25 @@ class RebalanceRequest(BaseModel):
         populate_by_name = True
 
 class RebalanceRecommendation(BaseModel):
-    sku: str
-    source_warehouse_id: str
-    dest_warehouse_id: str
-    quantity: int
-    priority: str
-    estimated_shipping_cost: float
-    source_current_doc: float
-    dest_current_doc: float
-    source_projected_doc: float
-    dest_projected_doc: float
-    urgency_reason: str
+    sku: str = Field(..., max_length=255)
+    source_warehouse_id: str = Field(..., max_length=255)
+    dest_warehouse_id: str = Field(..., max_length=255)
+    quantity: int = Field(..., ge=0)
+    priority: str = Field(..., max_length=50)
+    estimated_shipping_cost: float = Field(..., ge=0.0)
+    source_current_doc: float = Field(...)
+    dest_current_doc: float = Field(...)
+    source_projected_doc: float = Field(...)
+    dest_projected_doc: float = Field(...)
+    urgency_reason: str = Field(..., max_length=1000)
 
     class Config:
         populate_by_name = True
 
 class RebalanceMatrix(BaseModel):
-    recommendations: List[RebalanceRecommendation]
-    matrix: dict
-    summary: dict
+    recommendations: List[RebalanceRecommendation] = Field(..., max_length=10000)
+    matrix: dict = Field(...)
+    summary: dict = Field(...)
 
     class Config:
         populate_by_name = True

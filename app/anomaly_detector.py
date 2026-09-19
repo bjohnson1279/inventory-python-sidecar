@@ -46,23 +46,23 @@ class AnomalyDetectRequest(BaseModel):
     scan_events: List[ScanEventInput] = Field(..., max_length=10000)
 
 class AnomalyAlert(BaseModel):
-    alert_type: str
-    severity: str
-    confidence: float
-    sku: Optional[str] = None
-    location_id: Optional[str] = None
-    actor_id: Optional[str] = None
-    title: str
-    description: str
-    evidence: dict
-    detected_at: str
+    alert_type: str = Field(..., max_length=255)
+    severity: str = Field(..., max_length=255)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    sku: Optional[str] = Field(None, max_length=255)
+    location_id: Optional[str] = Field(None, max_length=255)
+    actor_id: Optional[str] = Field(None, max_length=255)
+    title: str = Field(..., max_length=255)
+    description: str = Field(..., max_length=1000)
+    evidence: dict = Field(...)
+    detected_at: str = Field(..., max_length=255)
 
     class Config:
         populate_by_name = True
 
 class AnomalyDetectResponse(BaseModel):
-    alerts: List[AnomalyAlert]
-    summary: dict
+    alerts: List[AnomalyAlert] = Field(..., max_length=10000)
+    summary: dict = Field(...)
 
     class Config:
         populate_by_name = True
