@@ -15,10 +15,10 @@ class WarehouseInput(BaseModel):
 class StockLevelInput(BaseModel):
     sku: str = Field(..., max_length=255)
     warehouse_id: str = Field(..., alias="warehouse_id", max_length=255)
-    on_hand: int = Field(..., alias="on_hand", ge=0)
-    allocated: int = Field(0, ge=0)
-    in_transit: int = Field(0, alias="in_transit", ge=0)
-    safety_stock: int = Field(0, alias="safety_stock", ge=0)
+    on_hand: int = Field(..., alias="on_hand", ge=0, le=1000000)
+    allocated: int = Field(0, ge=0, le=1000000)
+    in_transit: int = Field(0, alias="in_transit", ge=0, le=1000000)
+    safety_stock: int = Field(0, alias="safety_stock", ge=0, le=1000000)
 
     class Config:
         populate_by_name = True
