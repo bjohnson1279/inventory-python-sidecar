@@ -55,3 +55,6 @@
 ## 2025-02-23 - Avoid List Slicing in Greedy Consumption Loops
 **Learning:** Using list slicing (e.g. `list = list[used:]`) to consume elements within a loop allocates a new list every iteration, leading to O(M*N) time complexity and unnecessary memory overhead.
 **Action:** When sequentially consuming items from a list within a loop, use an index pointer (e.g., `op_idx = 0`) that persists across the outer loop to achieve true O(N) complexity without mutating the list or allocating new ones.
+## 2024-05-15 - Cache O(N) Rule Scanning in Yield Optimizer
+**Learning:** The O(N) linear scan over sorted rules per lot in `optimize_yield` causes a severe performance bottleneck (O(M*N)) when dealing with many lots having the same department/sku/expiration attributes.
+**Action:** Apply dictionary-based caching (memoization) using `(department, sku, days_until_exp)` as the key to convert repetitive O(N) scans into O(1) lookups. Ensure cache key creation is wrapped in a try/except block for `TypeError` to handle potential unhashable inputs.
