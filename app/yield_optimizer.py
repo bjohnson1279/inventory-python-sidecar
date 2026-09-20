@@ -42,6 +42,10 @@ def optimize_yield(req: OptimizeYieldRequest):
     # with an early exit
     sorted_rules = sorted(req.rules, key=lambda x: x.markdown_percentage, reverse=True)
 
+    # Optimization: Cache the best rule for a given (department, sku, days_until_exp)
+    # to avoid repeating the O(N) rule scan for similar lots.
+    best_rule_cache = {}
+
     # Simple evaluation engine
     for lot in req.lots:
         days_until_exp = expiration_cache.get(lot.expiration_date)
@@ -57,20 +61,35 @@ def optimize_yield(req: OptimizeYieldRequest):
         if days_until_exp < 0:
             continue # Already expired, handled by FEFO quarantine
             
-        best_rule = None
-        
-        for rule in sorted_rules:
-            # Rule applies if days_to_expiration threshold is met
-            if days_until_exp <= rule.days_to_expiration:
-                # Check optional filters
-                if rule.department and rule.department != lot.department:
-                    continue
-                if rule.sku and rule.sku != lot.sku:
-                    continue
-                
-                # Since rules are sorted by markdown descending, the first match is the best
-                best_rule = rule
-                break
+        try:
+            cache_key = (lot.department, lot.sku, days_until_exp)
+            if cache_key in best_rule_cache:
+                best_rule = best_rule_cache[cache_key]
+                cache_hit = True
+            else:
+                best_rule = None
+                cache_hit = False
+        except TypeError:
+            cache_key = None
+            best_rule = None
+            cache_hit = False
+
+        if not cache_hit:
+            for rule in sorted_rules:
+                # Rule applies if days_to_expiration threshold is met
+                if days_until_exp <= rule.days_to_expiration:
+                    # Check optional filters
+                    if rule.department and rule.department != lot.department:
+                        continue
+                    if rule.sku and rule.sku != lot.sku:
+                        continue
+
+                    # Since rules are sorted by markdown descending, the first match is the best
+                    best_rule = rule
+                    break
+
+            if cache_key is not None:
+                best_rule_cache[cache_key] = best_rule
                     
         if best_rule:
             discount_multiplier = (100.0 - best_rule.markdown_percentage) / 100.0
