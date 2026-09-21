@@ -56,7 +56,7 @@ class InventoryInput(BaseModel):
 class DispatchInput(BaseModel):
     sku: str = Field(..., max_length=255)
     location_id: str = Field(..., max_length=255, alias="location_id")
-    quantity: int = Field(..., ge=0)
+    quantity: int = Field(..., ge=0, le=1000000)
     date: str = Field(..., max_length=255)
 
     class Config:
@@ -70,12 +70,12 @@ class OptimizeRequest(BaseModel):
 class SlottingSuggestion(BaseModel):
     sku: str = Field(..., max_length=255)
     currentLocationId: str = Field(..., max_length=255)
-    currentDistance: float = Field(..., ge=0.0)
-    currentVelocity: float = Field(..., ge=0.0)
+    currentDistance: float = Field(..., ge=0.0, le=1000000.0)
+    currentVelocity: float = Field(..., ge=0.0, le=1000000.0)
     recommendedLocationId: str = Field(..., max_length=255)
-    recommendedDistance: float = Field(..., ge=0.0)
+    recommendedDistance: float = Field(..., ge=0.0, le=1000000.0)
     potentialSwapSku: Optional[str] = Field(None, max_length=255)
-    estimatedSavings: float = Field(...)
+    estimatedSavings: float = Field(..., ge=-1000000000.0, le=1000000000.0)
 
 @app.post("/optimize", response_model=List[SlottingSuggestion])
 def optimize_slotting(req: OptimizeRequest):

@@ -64,3 +64,19 @@ def test_labor_bounds():
     }
     response = client.post("/labor/predict-schedule", json=payload)
     assert response.status_code == 422
+
+def test_optimize_bounds():
+    payload = {
+        "locations": [{"id": "LOC-1", "grid_x": 0, "grid_y": 0, "grid_z": 0}],
+        "inventory": [{"sku": "SKU-1", "location_id": "LOC-1"}],
+        "dispatches": [
+            {
+                "sku": "SKU-1",
+                "location_id": "LOC-1",
+                "quantity": 10**10,
+                "date": "2023-10-12T14:30:00Z"
+            }
+        ]
+    }
+    response = client.post("/optimize", json=payload)
+    assert response.status_code == 422
