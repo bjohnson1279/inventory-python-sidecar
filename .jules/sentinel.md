@@ -56,3 +56,7 @@
 **Learning:** Even if Request models are validated, intermediate algorithms or data transformation layers might generate unexpectedly massive structures (like deeply concatenated strings or overflow numbers) due to internal logical bugs or cascading failures. Unconstrained internal/response models fail to catch this data bloat, risking memory exhaustion or algorithmic complexity DoS during serialization.
 **Prevention:** Apply `Field(..., max_length=X)` and `Field(..., ge=Y)` consistently to *all* Pydantic models (Requests, Responses, and internal schemas) to establish firm boundaries for memory allocation and system egress.
 
+## 2024-05-24 - Unbounded Numeric Fields Causing Overflow DoS
+**Vulnerability:** Unbounded Pydantic integer fields can be submitted with extremely large values (e.g. 10**310) which cause Python `OverflowError` when multiplied by floats.
+**Learning:** Python automatically handles arbitrarily large integers, but converting them to floats during arithmetic operations fails, leading to unhandled exceptions and 500 Server Errors (DoS).
+**Prevention:** Always add explicit upper bounds (e.g. `le=1000000`) to numerical fields in Pydantic models.
