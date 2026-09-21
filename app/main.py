@@ -91,23 +91,30 @@ def optimize_slotting(req: OptimizeRequest):
     date_weights = {} # Optimization: cache expensive datetime parsing and weight calculation
     
     for d in req.dispatches:
-        weight = date_weights.get(d.date)
+        # Optimization: since we only care about days_ago, we can slice the date
+        # to the day level (first 10 characters like YYYY-MM-DD) for caching.
+        # This drastically reduces cache misses when dealing with varied time stamps.
+        day_str = d.date[:10]
+        weight = date_weights.get(day_str)
         if weight is None:
             try:
-                # Handle standard ISO dates and timezone specifiers
-                clean_date = d.date.replace("Z", "+00:00")
-                d_date = datetime.fromisoformat(clean_date)
+                d_date = datetime.fromisoformat(day_str)
+                days_ago = (now - d_date).days
             except Exception:
-                d_date = now
+                try:
+                    # Handle standard ISO dates and timezone specifiers
+                    clean_date = d.date.replace("Z", "+00:00")
+                    d_date = datetime.fromisoformat(clean_date)
+                    # Convert both datetimes to offset-naive UTC to avoid comparison errors
+                    if d_date.tzinfo is not None:
+                        d_date = d_date.astimezone(None).replace(tzinfo=None)
+                    days_ago = (now - d_date).days
+                except Exception:
+                    days_ago = 0
 
-            # Convert both datetimes to offset-naive UTC to avoid comparison errors
-            if d_date.tzinfo is not None:
-                d_date = d_date.astimezone(None).replace(tzinfo=None)
-
-            days_ago = (now - d_date).days
             # Time-decay factor: decay velocity by 2% per day ago (representing hot/seasonal velocity)
             weight = math.exp(-0.02 * max(0, days_ago))
-            date_weights[d.date] = weight
+            date_weights[day_str] = weight
             
         key = (d.sku, d.location_id)
         velocities[key] = velocities.get(key, 0.0) + abs(d.quantity) * weight
