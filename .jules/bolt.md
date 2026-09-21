@@ -58,3 +58,6 @@
 ## 2024-05-15 - Cache O(N) Rule Scanning in Yield Optimizer
 **Learning:** The O(N) linear scan over sorted rules per lot in `optimize_yield` causes a severe performance bottleneck (O(M*N)) when dealing with many lots having the same department/sku/expiration attributes.
 **Action:** Apply dictionary-based caching (memoization) using `(department, sku, days_until_exp)` as the key to convert repetitive O(N) scans into O(1) lookups. Ensure cache key creation is wrapped in a try/except block for `TypeError` to handle potential unhashable inputs.
+## 2025-02-23 - Avoid Parsing Full Datetime when Only Days are Needed
+**Learning:** Parsing full ISO 8601 strings with timezone information in tight loops is extremely expensive. When calculating only the number of days ago, caching on the full timestamp misses opportunities, and parsing the time component is redundant.
+**Action:** Extract the date portion (first 10 characters) as the cache key and for `datetime.fromisoformat` parsing, reducing both cache misses and parsing overhead.
