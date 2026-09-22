@@ -7,7 +7,7 @@ router = APIRouter(prefix="/pricing", tags=["pricing"])
 
 class LiquidationRuleInput(BaseModel):
     rule_id: str = Field(..., max_length=255)
-    days_to_expiration: int = Field(..., ge=0)
+    days_to_expiration: int = Field(..., ge=0, le=1000000)
     markdown_percentage: float = Field(..., ge=0.0, le=100.0)
     department: Optional[str] = Field(None, max_length=255)
     sku: Optional[str] = Field(None, max_length=255)
@@ -16,7 +16,7 @@ class LotInput(BaseModel):
     variant_id: str = Field(..., max_length=255)
     sku: str = Field(..., max_length=255)
     department: str = Field(..., max_length=255)
-    current_price_cents: int = Field(..., ge=0)
+    current_price_cents: int = Field(..., ge=0, le=100000000)
     expiration_date: str = Field(..., max_length=255) # ISO format
 
 class MarkdownSuggestion(BaseModel):

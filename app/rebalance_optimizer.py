@@ -36,7 +36,7 @@ class DemandForecastInput(BaseModel):
 class LeadTimeInput(BaseModel):
     source_warehouse_id: str = Field(..., alias="source_warehouse_id", max_length=255)
     dest_warehouse_id: str = Field(..., alias="dest_warehouse_id", max_length=255)
-    transit_days: int = Field(..., alias="transit_days", ge=0)
+    transit_days: int = Field(..., alias="transit_days", ge=0, le=10000)
 
     class Config:
         populate_by_name = True
