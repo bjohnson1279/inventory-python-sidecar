@@ -61,3 +61,7 @@
 ## 2025-02-23 - Avoid Parsing Full Datetime when Only Days are Needed
 **Learning:** Parsing full ISO 8601 strings with timezone information in tight loops is extremely expensive. When calculating only the number of days ago, caching on the full timestamp misses opportunities, and parsing the time component is redundant.
 **Action:** Extract the date portion (first 10 characters) as the cache key and for `datetime.fromisoformat` parsing, reducing both cache misses and parsing overhead.
+
+## 2025-02-23 - Hoisting Loop Invariants in Rebalance Optimizer
+**Learning:** In the O(N*M) nested loop of `app/rebalance_optimizer.py`, redundant recalculation of surplus retention (`int(target * max(s["vel"], 0.01))`) inside the innermost loop caused significant CPU overhead.
+**Action:** When matching elements across large arrays, always pre-calculate invariant properties (like retention requirements) during initial data traversal or hoist them to outer loops to drastically reduce inner loop operations.
