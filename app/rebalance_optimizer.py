@@ -137,7 +137,9 @@ def optimize_rebalance(req: RebalanceRequest):
         status = "BALANCED"
         if doc > 2 * target:
             status = "SURPLUS"
-            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel}
+            vel_safe = max(vel, 0.01)
+            retained = int(target * vel_safe)
+            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_safe": vel_safe, "retained": retained}
             surpluses.append(surplus_entry)
             surplus_lookup[(stock.sku, stock.warehouse_id)] = surplus_entry
             if stock.sku not in surpluses_by_sku:
@@ -159,7 +161,8 @@ def optimize_rebalance(req: RebalanceRequest):
     for d in deficits:
         sku = d["sku"]
         dest_wh = d["wh"]
-        needed_qty = int((target - d["doc"]) * max(d["vel"], 0.01))
+        d_vel_safe = max(d["vel"], 0.01)
+        needed_qty = int((target - d["doc"]) * d_vel_safe)
         
         if needed_qty <= 0:
             continue
@@ -169,14 +172,17 @@ def optimize_rebalance(req: RebalanceRequest):
         for s in surpluses_by_sku.get(sku, []):
             src_wh = s["wh"]
 
-            transfer_qty = min(s["avail"] - int(target * max(s["vel"], 0.01)), needed_qty)
+            transfer_qty = min(s["avail"] - s["retained"], needed_qty)
             if transfer_qty < req.constraints.min_transfer_quantity:
                 continue
                 
-            cost_pu = costs.get((src_wh, dest_wh), 1.0)
-            transit_days = lead_times.get((src_wh, dest_wh), 1)
+            cost_pu = costs.get((src_wh, dest_wh))
+            if cost_pu is None: cost_pu = 1.0
 
-            doc_improvement = transfer_qty / max(d["vel"], 0.01)
+            transit_days = lead_times.get((src_wh, dest_wh))
+            if transit_days is None: transit_days = 1
+
+            doc_improvement = transfer_qty / d_vel_safe
             transit_penalty = transit_days * 0.5
 
             score = (doc_improvement * urgency_weight) / (cost_pu + transit_penalty + 0.01)
@@ -217,7 +223,7 @@ def optimize_rebalance(req: RebalanceRequest):
         # recalculate available transfer qty
         s = surplus_lookup.get((sku, src))
         if s:
-            src_avail = s["avail"] - already_out - int(target * max(s["vel"], 0.01))
+            src_avail = s["avail"] - already_out - s["retained"]
         else:
             src_avail = 0
             
