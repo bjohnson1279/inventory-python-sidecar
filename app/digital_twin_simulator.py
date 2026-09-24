@@ -30,11 +30,11 @@ class SimulationRequest(BaseModel):
 
 class SimulationResponse(BaseModel):
     scenario_id: str = Field(..., max_length=255)
-    duration_seconds: int = Field(..., ge=0)
-    total_orders_processed: int = Field(..., ge=0)
-    average_fulfillment_time_minutes: float = Field(..., ge=0.0)
+    duration_seconds: int = Field(..., ge=0, le=1000000000)
+    total_orders_processed: int = Field(..., ge=0, le=1000000000)
+    average_fulfillment_time_minutes: float = Field(..., ge=0.0, le=1000000000.0)
     bottleneck_bin_id: str = Field(..., max_length=255)
-    throughput_per_hour: float = Field(..., ge=0.0)
+    throughput_per_hour: float = Field(..., ge=0.0, le=1000000000.0)
     picker_utilization_rate: float = Field(..., ge=0.0, le=1.0)
     congestion_hotspots: List[str] = Field(..., max_length=1000)
 
