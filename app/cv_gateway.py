@@ -10,9 +10,9 @@ class AnalyzeInboundRequest(BaseModel):
     po_id: str = Field(None, max_length=255, description="Optional Purchase Order ID for context")
 
 class Dimensions(BaseModel):
-    length: float = Field(..., ge=0.0)
-    width: float = Field(..., ge=0.0)
-    height: float = Field(..., ge=0.0)
+    length: float = Field(..., ge=0.0, le=1000000.0)
+    width: float = Field(..., ge=0.0, le=1000000.0)
+    height: float = Field(..., ge=0.0, le=1000000.0)
 
 class AnalyzeInboundResponse(BaseModel):
     dimensions: Dimensions

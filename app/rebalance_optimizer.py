@@ -26,9 +26,9 @@ class StockLevelInput(BaseModel):
 class DemandForecastInput(BaseModel):
     sku: str = Field(..., max_length=255)
     warehouse_id: str = Field(..., alias="warehouse_id", max_length=255)
-    daily_velocity_7d: float = Field(0.0, alias="daily_velocity_7d", ge=0.0)
-    daily_velocity_30d: float = Field(0.0, alias="daily_velocity_30d", ge=0.0)
-    daily_velocity_90d: float = Field(0.0, alias="daily_velocity_90d", ge=0.0)
+    daily_velocity_7d: float = Field(0.0, alias="daily_velocity_7d", ge=0.0, le=1000000.0)
+    daily_velocity_30d: float = Field(0.0, alias="daily_velocity_30d", ge=0.0, le=1000000.0)
+    daily_velocity_90d: float = Field(0.0, alias="daily_velocity_90d", ge=0.0, le=1000000.0)
 
     class Config:
         populate_by_name = True
@@ -44,15 +44,15 @@ class LeadTimeInput(BaseModel):
 class ShippingCostInput(BaseModel):
     source_warehouse_id: str = Field(..., alias="source_warehouse_id", max_length=255)
     dest_warehouse_id: str = Field(..., alias="dest_warehouse_id", max_length=255)
-    cost_per_unit: float = Field(..., alias="cost_per_unit", ge=0.0)
+    cost_per_unit: float = Field(..., alias="cost_per_unit", ge=0.0, le=1000000.0)
 
     class Config:
         populate_by_name = True
 
 class RebalanceConstraints(BaseModel):
-    max_transfers_per_run: int = Field(20, alias="max_transfers_per_run", ge=1)
-    min_transfer_quantity: int = Field(5, alias="min_transfer_quantity", ge=1)
-    min_days_of_cover_target: float = Field(14.0, alias="min_days_of_cover_target", ge=0.0)
+    max_transfers_per_run: int = Field(20, alias="max_transfers_per_run", ge=1, le=1000)
+    min_transfer_quantity: int = Field(5, alias="min_transfer_quantity", ge=1, le=1000000)
+    min_days_of_cover_target: float = Field(14.0, alias="min_days_of_cover_target", ge=0.0, le=1000.0)
 
     class Config:
         populate_by_name = True
@@ -72,13 +72,13 @@ class RebalanceRecommendation(BaseModel):
     sku: str = Field(..., max_length=255)
     source_warehouse_id: str = Field(..., max_length=255)
     dest_warehouse_id: str = Field(..., max_length=255)
-    quantity: int = Field(..., ge=0)
+    quantity: int = Field(..., ge=0, le=1000000)
     priority: str = Field(..., max_length=50)
-    estimated_shipping_cost: float = Field(..., ge=0.0)
-    source_current_doc: float = Field(...)
-    dest_current_doc: float = Field(...)
-    source_projected_doc: float = Field(...)
-    dest_projected_doc: float = Field(...)
+    estimated_shipping_cost: float = Field(..., ge=0.0, le=1000000000.0)
+    source_current_doc: float = Field(..., ge=0.0, le=1000000.0)
+    dest_current_doc: float = Field(..., ge=0.0, le=1000000.0)
+    source_projected_doc: float = Field(..., ge=0.0, le=1000000.0)
+    dest_projected_doc: float = Field(..., ge=0.0, le=1000000.0)
     urgency_reason: str = Field(..., max_length=1000)
 
     class Config:
