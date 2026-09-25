@@ -59,3 +59,8 @@
 **Vulnerability:** Unbounded Pydantic integer fields can be submitted with extremely large values (e.g. 10**310) which cause Python `OverflowError` when multiplied by floats.
 **Learning:** Python automatically handles arbitrarily large integers, but converting them to floats during arithmetic operations fails, leading to unhandled exceptions and 500 Server Errors (DoS).
 **Prevention:** Always add explicit upper bounds (e.g. `le=1000000`) to numerical fields in Pydantic models.
+
+## 2024-05-24 - [DoS Protection: Input Field Bounds over Output Bounds]
+**Vulnerability:** Adding numerical bounds to output models (like `EsgReportResponse` or `RebalanceRecommendation`) to prevent DoS fails to mitigate risks because output values have a fixed memory footprint. Furthermore, arbitrary numerical upper limits on legitimate calculations will lead to server-side Pydantic `ValidationError`s, causing unhandled 500 errors.
+**Learning:** Pydantic `ge`/`le` constraints and `max_length` constraints must be focused heavily on API input request models, where unbounded inputs can cause system overload (e.g., massive floats submitted triggering `OverflowError`). Output models should avoid arbitrarily imposed numerical boundaries unless strictly tied to a documented business requirement.
+**Prevention:** Apply constraints (like `le=1000000.0`) strictly to `Input` models such as `DemandForecastInput`, `ShippingCostInput`, and `RebalanceConstraints` to protect the backend processing layers.
