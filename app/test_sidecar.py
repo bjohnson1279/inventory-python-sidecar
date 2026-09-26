@@ -80,3 +80,21 @@ def test_optimize_bounds():
     }
     response = client.post("/optimize", json=payload)
     assert response.status_code == 422
+
+def test_rebalance_bounds():
+    payload = {
+        "warehouses": [{"id": "WH-1", "name": "Warehouse 1"}],
+        "stock_levels": [],
+        "demand_forecasts": [
+            {
+                "sku": "SKU-1",
+                "warehouse_id": "WH-1",
+                "daily_velocity_30d": 10**10
+            }
+        ],
+        "lead_times": [],
+        "shipping_costs": [],
+        "constraints": {}
+    }
+    response = client.post("/rebalance-optimize", json=payload)
+    assert response.status_code == 422
