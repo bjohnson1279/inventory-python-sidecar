@@ -59,3 +59,8 @@
 **Vulnerability:** Unbounded Pydantic integer fields can be submitted with extremely large values (e.g. 10**310) which cause Python `OverflowError` when multiplied by floats.
 **Learning:** Python automatically handles arbitrarily large integers, but converting them to floats during arithmetic operations fails, leading to unhandled exceptions and 500 Server Errors (DoS).
 **Prevention:** Always add explicit upper bounds (e.g. `le=1000000`) to numerical fields in Pydantic models.
+
+## 2025-03-01 - [DoS Protection: Integer Conversion Overflow via Unbounded Floats]
+**Vulnerability:** Unbounded float fields in `app/rebalance_optimizer.py` could receive arbitrarily large values (like 1e308), evaluating to `inf` and causing `OverflowError: cannot convert float infinity to integer` during math calculations, leading to 500 errors and DoS.
+**Learning:** Pydantic float fields without upper bounds can be exploited to bypass integer conversion constraints in Python, crashing background tasks or synchronous APIs.
+**Prevention:** Always add explicit upper bounds (e.g., `le=1000000.0`) to float fields mapped to algorithms using Pydantic's `Field`.
