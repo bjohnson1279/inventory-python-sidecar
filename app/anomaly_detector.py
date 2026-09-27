@@ -167,8 +167,11 @@ def detect_anomalies(req: AnomalyDetectRequest):
     for loc, data in loc_counts.items():
         if len(data) > 1:
             ratios = [d["ratio"] for d in data]
-            mean_ratio = np.mean(ratios)
-            std_ratio = np.std(ratios)
+            # Optimization: Pure Python calculation to avoid numpy overhead for small datasets
+            n_ratios = len(ratios)
+            mean_ratio = sum(ratios) / n_ratios
+            var_ratio = sum((x - mean_ratio) ** 2 for x in ratios) / n_ratios
+            std_ratio = var_ratio ** 0.5
             
             if std_ratio > 0:
                 for d in data:
@@ -212,7 +215,20 @@ def detect_anomalies(req: AnomalyDetectRequest):
 
         if hours:
             hour_vals = [h["hour"] for h in hours]
-            q1, q3 = np.percentile(hour_vals, [25, 75])
+            # Optimization: Native sorting for percentiles to avoid numpy overhead with linear interpolation
+            hour_vals_sorted = sorted(hour_vals)
+            n_hours = len(hour_vals_sorted)
+
+            # Linear interpolation for 25th and 75th percentiles (equivalent to numpy method='linear')
+            def get_percentile(p):
+                idx = (n_hours - 1) * p
+                lower = int(idx)
+                upper = lower + 1 if lower < n_hours - 1 else lower
+                weight = idx - lower
+                return hour_vals_sorted[lower] * (1 - weight) + hour_vals_sorted[upper] * weight
+
+            q1 = get_percentile(0.25)
+            q3 = get_percentile(0.75)
             iqr = q3 - q1
             lower_bound = q1 - 1.5 * iqr
             upper_bound = q3 + 1.5 * iqr
@@ -236,8 +252,11 @@ def detect_anomalies(req: AnomalyDetectRequest):
         if day_counts:
             counts = list(day_counts.values())
             if len(counts) > 2:
-                mean_counts = np.mean(counts)
-                std_counts = np.std(counts)
+                # Optimization: Pure Python calculation to avoid numpy overhead
+                n_counts = len(counts)
+                mean_counts = sum(counts) / n_counts
+                var_counts = sum((x - mean_counts) ** 2 for x in counts) / n_counts
+                std_counts = var_counts ** 0.5
                 for day, count in day_counts.items():
                     if count > mean_counts + 3 * std_counts:
                         conf = 0.8
@@ -286,7 +305,9 @@ def detect_anomalies(req: AnomalyDetectRequest):
             shrinkage_ratio = 0
             neg_ratio = 0
             
-        avg_disc = np.mean(stats["cycle_ratios"]) if stats["cycle_ratios"] else 0
+        # Optimization: Pure Python sum to avoid numpy overhead
+        n_cyc = len(stats["cycle_ratios"])
+        avg_disc = (sum(stats["cycle_ratios"]) / n_cyc) if n_cyc > 0 else 0
         timing = min(stats["temporal_outlier"] / 5.0, 1.0) 
         
         score = 0.4 * shrinkage_ratio + 0.3 * neg_ratio + 0.2 * min(avg_disc, 1.0) + 0.1 * timing

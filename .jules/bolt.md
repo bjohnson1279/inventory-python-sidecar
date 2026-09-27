@@ -61,3 +61,7 @@
 ## 2025-02-23 - Avoid Parsing Full Datetime when Only Days are Needed
 **Learning:** Parsing full ISO 8601 strings with timezone information in tight loops is extremely expensive. When calculating only the number of days ago, caching on the full timestamp misses opportunities, and parsing the time component is redundant.
 **Action:** Extract the date portion (first 10 characters) as the cache key and for `datetime.fromisoformat` parsing, reducing both cache misses and parsing overhead.
+
+## 2025-02-23 - Avoid Expensive Operations Like Numpy Stats For Inner Loops
+**Learning:** In highly iterated loops processing small lists (e.g., standard deviation over cycle counts or temporal anomaly checks), using heavy array-based libraries like `numpy` for operations (`np.mean`, `np.std`, `np.percentile`) adds massive overhead due to the conversion to C data structures and back. Pure Python implementations (e.g., `sum()` based mean and variance, and sorting for percentiles) operate significantly faster for smaller datasets.
+**Action:** When performing statistical operations in high-throughput synchronous inner loops on small collections, prefer native Python `sum()` or `math` module instead of `numpy` arrays to eliminate allocation and type conversion overhead, which drops time per operation substantially.
