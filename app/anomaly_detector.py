@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Optional
+import math
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 import numpy as np
@@ -167,8 +168,10 @@ def detect_anomalies(req: AnomalyDetectRequest):
     for loc, data in loc_counts.items():
         if len(data) > 1:
             ratios = [d["ratio"] for d in data]
-            mean_ratio = np.mean(ratios)
-            std_ratio = np.std(ratios)
+            # Optimization: Use pure Python math for mean/std to avoid NumPy overhead on small arrays
+            n_ratios = len(ratios)
+            mean_ratio = sum(ratios) / n_ratios
+            std_ratio = math.sqrt(sum((x - mean_ratio)**2 for x in ratios) / n_ratios)
             
             if std_ratio > 0:
                 for d in data:
