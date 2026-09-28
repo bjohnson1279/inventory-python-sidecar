@@ -1,9 +1,38 @@
 from datetime import datetime, timezone
+import math
 from typing import List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 import numpy as np
 from sklearn.ensemble import IsolationForest
+
+
+
+def _calc_mean_std(data):
+    # Optimization: Pure Python calculation of mean and std deviation is significantly faster
+    # than numpy for small lists as it avoids C-binding and object conversion overhead.
+    if not data:
+        return 0.0, 0.0
+    n = len(data)
+    mean = sum(data) / n
+    variance = sum((x - mean) ** 2 for x in data) / n
+    return mean, math.sqrt(variance)
+
+def _calc_percentiles(data, percentiles):
+    # Optimization: Pure Python percentile calculation is faster than numpy for small lists.
+    if not data:
+        return [0.0 for _ in percentiles]
+    s = sorted(data)
+    n = len(s)
+    res = []
+    for p in percentiles:
+        idx = (n - 1) * (p / 100.0)
+        f, c = math.floor(idx), math.ceil(idx)
+        if f == c:
+            res.append(float(s[f]))
+        else:
+            res.append(float(s[f] * (c - idx) + s[c] * (idx - f)))
+    return res
 
 router = APIRouter()
 
@@ -167,8 +196,8 @@ def detect_anomalies(req: AnomalyDetectRequest):
     for loc, data in loc_counts.items():
         if len(data) > 1:
             ratios = [d["ratio"] for d in data]
-            mean_ratio = np.mean(ratios)
-            std_ratio = np.std(ratios)
+            mean_ratio, std_ratio = _calc_mean_std(ratios)
+
             
             if std_ratio > 0:
                 for d in data:
@@ -212,7 +241,7 @@ def detect_anomalies(req: AnomalyDetectRequest):
 
         if hours:
             hour_vals = [h["hour"] for h in hours]
-            q1, q3 = np.percentile(hour_vals, [25, 75])
+            q1, q3 = _calc_percentiles(hour_vals, [25, 75])
             iqr = q3 - q1
             lower_bound = q1 - 1.5 * iqr
             upper_bound = q3 + 1.5 * iqr
@@ -236,8 +265,8 @@ def detect_anomalies(req: AnomalyDetectRequest):
         if day_counts:
             counts = list(day_counts.values())
             if len(counts) > 2:
-                mean_counts = np.mean(counts)
-                std_counts = np.std(counts)
+                mean_counts, std_counts = _calc_mean_std(counts)
+
                 for day, count in day_counts.items():
                     if count > mean_counts + 3 * std_counts:
                         conf = 0.8
@@ -286,7 +315,7 @@ def detect_anomalies(req: AnomalyDetectRequest):
             shrinkage_ratio = 0
             neg_ratio = 0
             
-        avg_disc = np.mean(stats["cycle_ratios"]) if stats["cycle_ratios"] else 0
+        avg_disc, _ = _calc_mean_std(stats["cycle_ratios"]) if stats["cycle_ratios"] else (0.0, 0.0)
         timing = min(stats["temporal_outlier"] / 5.0, 1.0) 
         
         score = 0.4 * shrinkage_ratio + 0.3 * neg_ratio + 0.2 * min(avg_disc, 1.0) + 0.1 * timing
