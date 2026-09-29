@@ -33,6 +33,8 @@ def test_security_headers():
     assert headers.get("X-XSS-Protection") == "1; mode=block"
     assert headers.get("Strict-Transport-Security") == "max-age=31536000; includeSubDomains"
     assert headers.get("Content-Security-Policy") == "default-src 'self'"
+    assert headers.get("Cache-Control") == "no-store"
+    assert headers.get("Referrer-Policy") == "no-referrer"
 
 def test_anomaly_detector_bounds():
     payload = {
