@@ -32,3 +32,11 @@ test_*.ts
 test_*.js
 *.scratch
 plan.md
+
+test.cjs
+fix_*.cjs
+fix_*.php
+patch_*.py
+patch_*.sh
+update_*.php
+scratch_*
