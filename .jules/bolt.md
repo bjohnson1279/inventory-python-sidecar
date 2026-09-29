@@ -65,3 +65,7 @@
 ## 2023-11-20 - Pure Python Statistics for Small Datasets
 **Learning:** In high-throughput synchronous inner loops processing small lists or datasets, using heavy array-based libraries like numpy for simple statistical operations (e.g., np.mean, np.std, np.percentile) introduces significant C-binding and object conversion overhead.
 **Action:** Use pure Python implementations (like sum() for mean/variance or native sorting for percentiles) for simple statistical operations on small datasets to improve execution speed.
+
+## 2026-09-29 - Pre-calculate Inner Loop Constants
+**Learning:** In nested $O(N \times M)$ loops (e.g. matching algorithms), executing math operations like `int()`, `max()`, and multiplication on values that are constant relative to the inner loop iteration causes significant unnecessary CPU overhead.
+**Action:** Always pre-calculate fixed values (like `target * max(vel, 0.01)`) in the outer loop or during the initial data structuring phase to avoid repeated identical math in inner loops.
