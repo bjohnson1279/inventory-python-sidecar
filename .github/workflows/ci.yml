@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -22,6 +27,18 @@ jobs:
             exit 1
           fi
           echo "No conflict markers detected."
+
+      - name: Check for Python Standard Library Shadowing
+        run: |
+          echo "Scanning for stray files that shadow Python standard library modules..."
+          SHADOW_FILES=("inspect.py" "json.py" "logging.py" "sys.py" "os.py" "test.py" "unittest.py" "datetime.py")
+          for file in "${SHADOW_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "::error::Found stray '$file' in the root directory! This shadows the Python standard library."
+              exit 1
+            fi
+          done
+          echo "No shadowing files detected."
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
