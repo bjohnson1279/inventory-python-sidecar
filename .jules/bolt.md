@@ -89,3 +89,6 @@
 ## 2026-09-29 - Surgical Optimization Edits and No Scratch Script Commits
 **Learning:** Running whole-file formatters or regenerating entire components while performing performance optimizations introduces massive whitespace/formatting diffs (1,000+ lines), masking the real optimization, invalidating git blame, and causing painful merge conflicts with concurrent PRs. Additionally, committing scratch benchmark or patch scripts (`patch_*.py`, `test.cjs`) pollutes production repositories and triggers CI guardrail failures.
 **Action:** Restrict all algorithmic and performance optimizations to strictly scoped replacement chunks. Diff size must reflect only the functional optimization. Always clean up temporary benchmark or patch scripts with `git rm -f` before committing.
+## 2026-10-27 - Pre-calculate Inner Loop Constants
+**Learning:** In nested O(N * M) loops (e.g., matching or rebalance algorithms), performing redundant function calls like `max(val, 0.01)` and recalculating constants relative to the inner loop iteration causes significant unnecessary CPU overhead.
+**Action:** Pre-calculate fixed values and hoist functions like `max()` out of inner loops, passing them through intermediate data structures (e.g. dictionaries) if necessary, to avoid repeated identical operations.
