@@ -132,14 +132,15 @@ def optimize_rebalance(req: RebalanceRequest):
             continue
             
         avail = stock.on_hand - stock.allocated - stock.safety_stock
-        doc = avail / max(vel, 0.01)
+        vel_max = max(vel, 0.01)
+        doc = avail / vel_max
         
         status = "BALANCED"
         if doc > 2 * target:
             status = "SURPLUS"
             # Optimization: Pre-calculate reserved quantity to avoid repeated math in inner loops
-            reserved = int(target * max(vel, 0.01))
-            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "reserved": reserved}
+            reserved = int(target * vel_max)
+            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max, "reserved": reserved}
             surpluses.append(surplus_entry)
             surplus_lookup[(stock.sku, stock.warehouse_id)] = surplus_entry
             if stock.sku not in surpluses_by_sku:
@@ -147,7 +148,7 @@ def optimize_rebalance(req: RebalanceRequest):
             surpluses_by_sku[stock.sku].append(surplus_entry)
         elif doc < target:
             status = "DEFICIT"
-            deficits.append({"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel})
+            deficits.append({"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max})
 
         if stock.warehouse_id in matrix:
             matrix[stock.warehouse_id][stock.sku] = {
@@ -168,6 +169,7 @@ def optimize_rebalance(req: RebalanceRequest):
             continue
 
         urgency_weight, priority = get_urgency_weight(d["doc"], target)
+        urgency_factor = urgency_weight / d_vel_max
 
         for s in surpluses_by_sku.get(sku, []):
             src_wh = s["wh"]
@@ -182,7 +184,7 @@ def optimize_rebalance(req: RebalanceRequest):
             doc_improvement = transfer_qty / d_vel_max
             transit_penalty = transit_days * 0.5
 
-            score = (doc_improvement * urgency_weight) / (cost_pu + transit_penalty + 0.01)
+            score = (transfer_qty * urgency_factor) / (cost_pu + transit_penalty + 0.01)
 
             candidates.append({
                 "sku": sku,
@@ -196,8 +198,9 @@ def optimize_rebalance(req: RebalanceRequest):
                 "cost": transfer_qty * cost_pu,
                 "src_doc": s["doc"],
                 "dest_doc": d["doc"],
-                "src_vel": s["vel"],
-                "dest_vel": d["vel"]
+                "src_vel_max": s["vel_max"],
+                "dest_vel_max": d_vel_max,
+                "needed_qty": needed_qty
             })
 
     candidates.sort(key=lambda x: x["score"], reverse=True)
@@ -224,7 +227,7 @@ def optimize_rebalance(req: RebalanceRequest):
         else:
             src_avail = 0
             
-        needed = int((target - c["dest_doc"]) * max(c["dest_vel"], 0.01)) - already_in
+        needed = c["needed_qty"] - already_in
         
         actual_qty = min(src_avail, needed, c["qty"])
         if actual_qty < req.constraints.min_transfer_quantity:
@@ -233,8 +236,8 @@ def optimize_rebalance(req: RebalanceRequest):
         transferred_out[src][sku] = already_out + actual_qty
         transferred_in[dest][sku] = already_in + actual_qty
         
-        src_proj_doc = c["src_doc"] - (actual_qty / max(c["src_vel"], 0.01))
-        dest_proj_doc = c["dest_doc"] + (actual_qty / max(c["dest_vel"], 0.01))
+        src_proj_doc = c["src_doc"] - (actual_qty / c["src_vel_max"])
+        dest_proj_doc = c["dest_doc"] + (actual_qty / c["dest_vel_max"])
         
         selected.append(RebalanceRecommendation(
             sku=sku,
