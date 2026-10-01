@@ -44,3 +44,5 @@ scratch_*
 *.diff
 *.patch
 patch.diff
+
+*.timestamp-*.mjs
