@@ -102,3 +102,6 @@
 - **Strictly Append-Only Journaling**: When adding learnings to `.jules/*.md`, append strictly at the end of the file. Do not rewrite, deduplicate, or remove lines beginning with `## YYYY-MM-DD`.
 - **Surgical Scope Quarantine**: Modify only the files directly involved in the issue and their corresponding test fixtures. Do not delete, rename, or perform drive-by cleanups of unrelated root-level scripts or legacy files.
 - **Coupled Test Fixture Awareness for Security Invariants**: When changing fail-open fallback behavior (such as hardening decryption to fail closed), always update upstream test mocks that rely on plaintext credentials or mock values.
+## 2024-05-25 - Pre-calculate Combined Dictionary Lookups in Nested Loops
+**Learning:** When evaluating cost functions in nested O(N*M) loops requiring multiple dictionary lookups for the same key pair (e.g., `costs[(src, dest)]` and `lead_times[(src, dest)]`), performing independent lookups and recalculating the final penalty inside the inner loop adds significant redundant overhead.
+**Action:** Compute a composite penalty cache (`combined_penalty_cache`) over the union of relevant keys before the loop. This reduces multiple dictionary accesses and mathematical operations per iteration into a single O(1) lookup.

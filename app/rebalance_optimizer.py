@@ -114,6 +114,14 @@ def optimize_rebalance(req: RebalanceRequest):
     for l in req.lead_times:
         lead_times[(l.source_warehouse_id, l.dest_warehouse_id)] = l.transit_days
 
+    # Optimization: Pre-calculate combined penalty mapping to avoid repeated math and dict lookups in the inner O(N*M) loop
+    combined_penalty_cache = {}
+    penalty_keys = set(costs.keys()).union(set(lead_times.keys()))
+    for k in penalty_keys:
+        c = costs.get(k, 1.0)
+        t = lead_times.get(k, 1)
+        combined_penalty_cache[k] = c + (t * 0.5) + 0.01
+
     forecasts = {}
     for f in req.demand_forecasts:
         forecasts[(f.sku, f.warehouse_id)] = f.daily_velocity_30d
@@ -140,7 +148,7 @@ def optimize_rebalance(req: RebalanceRequest):
             status = "SURPLUS"
             # Optimization: Pre-calculate reserved quantity to avoid repeated math in inner loops
             reserved = int(target * vel_max)
-            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max, "reserved": reserved}
+            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max, "reserved": reserved, "transfer_avail": avail - reserved}
             surpluses.append(surplus_entry)
             surplus_lookup[(stock.sku, stock.warehouse_id)] = surplus_entry
             if stock.sku not in surpluses_by_sku:
@@ -174,17 +182,16 @@ def optimize_rebalance(req: RebalanceRequest):
         for s in surpluses_by_sku.get(sku, []):
             src_wh = s["wh"]
 
-            transfer_qty = min(s["avail"] - s["reserved"], needed_qty)
+            transfer_qty = min(s["transfer_avail"], needed_qty)
             if transfer_qty < req.constraints.min_transfer_quantity:
                 continue
                 
             cost_pu = costs.get((src_wh, dest_wh), 1.0)
-            transit_days = lead_times.get((src_wh, dest_wh), 1)
+            penalty = combined_penalty_cache.get((src_wh, dest_wh), 1.51) # 1.0 + 1 * 0.5 + 0.01
 
             doc_improvement = transfer_qty / d_vel_max
-            transit_penalty = transit_days * 0.5
 
-            score = (transfer_qty * urgency_factor) / (cost_pu + transit_penalty + 0.01)
+            score = (transfer_qty * urgency_factor) / penalty
 
             candidates.append({
                 "sku": sku,
