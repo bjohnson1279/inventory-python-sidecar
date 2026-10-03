@@ -105,3 +105,10 @@
 ## 2024-05-25 - Pre-calculate Combined Dictionary Lookups in Nested Loops
 **Learning:** When evaluating cost functions in nested O(N*M) loops requiring multiple dictionary lookups for the same key pair (e.g., `costs[(src, dest)]` and `lead_times[(src, dest)]`), performing independent lookups and recalculating the final penalty inside the inner loop adds significant redundant overhead.
 **Action:** Compute a composite penalty cache (`combined_penalty_cache`) over the union of relevant keys before the loop. This reduces multiple dictionary accesses and mathematical operations per iteration into a single O(1) lookup.
+
+- **Centralize Shared Test Doubles for Abstract Domain Repositories**: When mocking domain repositories across multiple test suites, define a single shared test double rather than duplicating inline mocks to prevent cross-suite synchronization bugs.
+
+## 2024-05-18 - Eager Evaluation in `dict.get()`
+**Learning:** In Python, passing a dynamically calculated fallback value (e.g., `d.get("key", max(v))`) evaluates the calculation eagerly on *every* loop iteration, completely negating the intended caching/hoisting optimization and slowing down performance due to added dictionary overhead.
+**Action:** When falling back to an expensive calculation during dictionary lookup, use conditional logic (`d["key"] if "key" in d else expensive_func()`) to guarantee lazy evaluation.
+
