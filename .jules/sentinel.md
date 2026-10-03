@@ -89,3 +89,7 @@
 - **Strictly Additive Journal Updates**: When updating `.jules/*.md`, strictly append new dated entries (`## YYYY-MM-DD - Title`). NEVER delete, truncate, or overwrite historical learnings or previous entries.
 - **Substantive Code Diff Requirement**: Pull requests must include substantive code changes in `src/`, `app/`, `lib/`, or `tests/`. Never open PRs that modify only `.jules/*.md` journals or root scratch scripts.
 - **Zero Scratch File Commits**: Never commit `*.diff`, `*.patch`, `test_*.ts`, `test_*.js`, `test.cjs`, `fix_*.php`, or `patch_*.py` files. Always remove temporary debugging or verification scripts prior to committing.
+## 2025-03-01 - [Input Validation: Strict Base64 Decoding]
+**Vulnerability:** API endpoints accepting Base64 encoded data (like image payloads) used broad exception handling (`except Exception:`) or commented-out validation logic, allowing arbitrary non-Base64 payloads to bypass initial validation checks.
+**Learning:** Broad exception handling or missing validation logic on complex input types (like Base64) can allow malformed data to penetrate deeper into the application architecture, potentially exploiting downstream parsers.
+**Prevention:** Always use strict parsing libraries (e.g., `base64.b64decode(..., validate=True)`) and catch specific parsing errors (e.g., `ValueError`, `binascii.Error`) to ensure inputs conform perfectly to expected formats before processing.

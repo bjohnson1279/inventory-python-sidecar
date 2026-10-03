@@ -1,4 +1,5 @@
 import base64
+import binascii
 import random
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -25,9 +26,8 @@ def analyze_inbound(req: AnalyzeInboundRequest):
     try:
         # Decode the image to ensure it's valid base64
         # Since we are mocking OpenCV / PyTesseract for the POC:
-        # image_data = base64.b64decode(req.image_base64)
-        pass
-    except Exception:
+        base64.b64decode(req.image_base64, validate=True)
+    except (ValueError, binascii.Error):
         raise HTTPException(status_code=400, detail="Invalid base64 image data")
 
     # Mock Dimensioning based on contour approximations
