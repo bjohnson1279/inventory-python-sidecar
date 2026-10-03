@@ -105,6 +105,9 @@
 ## 2024-05-25 - Pre-calculate Combined Dictionary Lookups in Nested Loops
 **Learning:** When evaluating cost functions in nested O(N*M) loops requiring multiple dictionary lookups for the same key pair (e.g., `costs[(src, dest)]` and `lead_times[(src, dest)]`), performing independent lookups and recalculating the final penalty inside the inner loop adds significant redundant overhead.
 **Action:** Compute a composite penalty cache (`combined_penalty_cache`) over the union of relevant keys before the loop. This reduces multiple dictionary accesses and mathematical operations per iteration into a single O(1) lookup.
+## 2023-11-20 - Avoid Intermediate List Allocation in Aggregators
+**Learning:** Using list comprehensions inside aggregators like `sum()` (e.g., `sum([x for x in list])`) eagerly allocates an intermediate list in memory before processing it. In large loops or web request handlers, this causes unnecessary O(n) spatial overhead, memory pressure, and garbage collection pauses.
+**Action:** Always replace list comprehensions inside aggregators with generator expressions (e.g., `sum(x for x in list)`). This computes values lazily, requiring only O(1) additional space.
 
 - **Centralize Shared Test Doubles for Abstract Domain Repositories**: When mocking domain repositories across multiple test suites, define a single shared test double rather than duplicating inline mocks to prevent cross-suite synchronization bugs.
 
