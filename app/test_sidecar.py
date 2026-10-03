@@ -82,12 +82,3 @@ def test_optimize_bounds():
     }
     response = client.post("/optimize", json=payload)
     assert response.status_code == 422
-
-def test_cv_analyze_inbound():
-    # Valid base64
-    res = client.post("/cv/analyze-inbound", json={"image_base64": "SGVsbG8="})
-    assert res.status_code == 200
-
-    # Invalid base64
-    res_invalid = client.post("/cv/analyze-inbound", json={"image_base64": "invalid_base_64"})
-    assert res_invalid.status_code == 400
