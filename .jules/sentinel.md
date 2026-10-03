@@ -99,3 +99,7 @@
 **Vulnerability:** The base64 decoding check in `app/cv_gateway.py` used `pass` or failed to pass the `validate=True` flag to `base64.b64decode`, allowing malformed base64 strings to bypass validation checks silently.
 **Learning:** Python's `base64.b64decode` will silently discard characters not in the base64 alphabet if `validate=True` is not provided. By only relying on `try...except Exception` without `validate=True`, large arbitrary or malformed string payloads can bypass early rejection logic, potentially leading to downstream exploitation or memory pressure.
 **Prevention:** Always use `validate=True` when validating untrusted base64 input in Python (e.g., `base64.b64decode(payload, validate=True)`) to ensure strict adherence to the alphabet and explicitly throw exceptions for invalid payloads.
+## 2024-05-24 - [Avoid broad exceptions in Base64 validation]
+**Vulnerability:** Broad except Exception block was used to handle Base64 decoding, potentially masking severe bugs or DoS vectors.
+**Learning:** Broad exception handling in Base64 decoding hides underlying application or logic bugs (e.g., TypeError).
+**Prevention:** Catch explicit validation exceptions like ValueError or binascii.Error.

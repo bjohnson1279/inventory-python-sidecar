@@ -108,3 +108,10 @@
 ## 2023-11-20 - Avoid Intermediate List Allocation in Aggregators
 **Learning:** Using list comprehensions inside aggregators like `sum()` (e.g., `sum([x for x in list])`) eagerly allocates an intermediate list in memory before processing it. In large loops or web request handlers, this causes unnecessary O(n) spatial overhead, memory pressure, and garbage collection pauses.
 **Action:** Always replace list comprehensions inside aggregators with generator expressions (e.g., `sum(x for x in list)`). This computes values lazily, requiring only O(1) additional space.
+
+- **Centralize Shared Test Doubles for Abstract Domain Repositories**: When mocking domain repositories across multiple test suites, define a single shared test double rather than duplicating inline mocks to prevent cross-suite synchronization bugs.
+
+## 2024-05-18 - Eager Evaluation in `dict.get()`
+**Learning:** In Python, passing a dynamically calculated fallback value (e.g., `d.get("key", max(v))`) evaluates the calculation eagerly on *every* loop iteration, completely negating the intended caching/hoisting optimization and slowing down performance due to added dictionary overhead.
+**Action:** When falling back to an expensive calculation during dictionary lookup, use conditional logic (`d["key"] if "key" in d else expensive_func()`) to guarantee lazy evaluation.
+
