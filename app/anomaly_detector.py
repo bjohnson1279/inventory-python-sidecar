@@ -341,6 +341,8 @@ def detect_anomalies(req: AnomalyDetectRequest):
         elif a.severity == "LOW": summary["total_low"] += 1
 
     if alerts:
-        summary["overall_risk_score"] = sum([a.confidence for a in alerts]) / len(alerts)
+        # Optimization: Replaced list comprehension inside sum() with a generator expression
+        # to prevent O(N) intermediate list memory allocation before calculating the average.
+        summary["overall_risk_score"] = sum(a.confidence for a in alerts) / len(alerts)
 
     return AnomalyDetectResponse(alerts=alerts, summary=summary)
