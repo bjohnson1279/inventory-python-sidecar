@@ -114,6 +114,13 @@ def optimize_rebalance(req: RebalanceRequest):
     for l in req.lead_times:
         lead_times[(l.source_warehouse_id, l.dest_warehouse_id)] = l.transit_days
 
+    # Optimization: Pre-calculate the combined cost and denominator for O(1) inner loop lookup
+    pair_cache = {}
+    for pair in set(costs.keys()).union(lead_times.keys()):
+        cost_pu = costs.get(pair, 1.0)
+        transit_days = lead_times.get(pair, 1)
+        pair_cache[pair] = (cost_pu, cost_pu + (transit_days * 0.5) + 0.01)
+
     forecasts = {}
     for f in req.demand_forecasts:
         forecasts[(f.sku, f.warehouse_id)] = f.daily_velocity_30d
@@ -162,7 +169,8 @@ def optimize_rebalance(req: RebalanceRequest):
     for d in deficits:
         sku = d["sku"]
         dest_wh = d["wh"]
-        d_vel_max = max(d["vel"], 0.01)
+        # Optimization: Safely reuse pre-calculated vel_max to avoid redundant max() calls
+        d_vel_max = d["vel_max"] if "vel_max" in d else max(d["vel"], 0.01)
         needed_qty = int((target - d["doc"]) * d_vel_max)
         
         if needed_qty <= 0:
@@ -178,13 +186,17 @@ def optimize_rebalance(req: RebalanceRequest):
             if transfer_qty < req.constraints.min_transfer_quantity:
                 continue
                 
-            cost_pu = costs.get((src_wh, dest_wh), 1.0)
-            transit_days = lead_times.get((src_wh, dest_wh), 1)
+            # Fast path: single dictionary lookup replaces two lookups and arithmetic
+            cached = pair_cache.get((src_wh, dest_wh))
+            if cached:
+                cost_pu, denominator = cached
+            else:
+                cost_pu = 1.0
+                denominator = 1.51 # 1.0 + (1 * 0.5) + 0.01
 
             doc_improvement = transfer_qty / d_vel_max
-            transit_penalty = transit_days * 0.5
 
-            score = (transfer_qty * urgency_factor) / (cost_pu + transit_penalty + 0.01)
+            score = (transfer_qty * urgency_factor) / denominator
 
             candidates.append({
                 "sku": sku,
