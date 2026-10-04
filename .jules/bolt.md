@@ -115,3 +115,6 @@
 **Learning:** In Python, passing a dynamically calculated fallback value (e.g., `d.get("key", max(v))`) evaluates the calculation eagerly on *every* loop iteration, completely negating the intended caching/hoisting optimization and slowing down performance due to added dictionary overhead.
 **Action:** When falling back to an expensive calculation during dictionary lookup, use conditional logic (`d["key"] if "key" in d else expensive_func()`) to guarantee lazy evaluation.
 
+## 2024-05-25 - Consolidate Multiple Default Values in Composite Cache Lookups
+**Learning:** When using a composite cache (e.g., storing a tuple of pre-calculated values for a key pair), extracting the fallback values using `.get(key, (default_val_1, default_val_2))` prevents independent evaluations. If the defaults were originally separate (e.g., `cost_pu = costs.get((s, d), 1.0)` and `penalty = combined_penalty_cache.get((s, d), 1.51)`), combining them into a single tuple lookup ensures efficient execution while maintaining precise default behavior.
+**Action:** When migrating multiple dictionary lookups to a single composite dictionary lookup, accurately map the original independent default values to a single tuple fallback in the `.get()` call to preserve logical correctness and optimize performance.
