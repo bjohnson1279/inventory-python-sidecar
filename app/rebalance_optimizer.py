@@ -115,12 +115,12 @@ def optimize_rebalance(req: RebalanceRequest):
         lead_times[(l.source_warehouse_id, l.dest_warehouse_id)] = l.transit_days
 
     # Optimization: Pre-calculate combined penalty mapping to avoid repeated math and dict lookups in the inner O(N*M) loop
-    combined_penalty_cache = {}
+    composite_cache = {}
     penalty_keys = set(costs.keys()).union(set(lead_times.keys()))
     for k in penalty_keys:
         c = costs.get(k, 1.0)
         t = lead_times.get(k, 1)
-        combined_penalty_cache[k] = c + (t * 0.5) + 0.01
+        composite_cache[k] = (c, c + (t * 0.5) + 0.01)
 
     forecasts = {}
     for f in req.demand_forecasts:
@@ -186,8 +186,7 @@ def optimize_rebalance(req: RebalanceRequest):
             if transfer_qty < req.constraints.min_transfer_quantity:
                 continue
                 
-            cost_pu = costs.get((src_wh, dest_wh), 1.0)
-            penalty = combined_penalty_cache.get((src_wh, dest_wh), 1.51) # 1.0 + 1 * 0.5 + 0.01
+            cost_pu, penalty = composite_cache.get((src_wh, dest_wh), (1.0, 1.51)) # 1.0 + 1 * 0.5 + 0.01
 
             doc_improvement = transfer_qty / d_vel_max
 
