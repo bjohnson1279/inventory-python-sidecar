@@ -54,7 +54,7 @@ def optimize_yield(req: OptimizeYieldRequest):
                 exp_dt = datetime.fromisoformat(lot.expiration_date.replace("Z", "+00:00"))
                 days_until_exp = (exp_dt - now).days
                 expiration_cache[lot.expiration_date] = days_until_exp
-            except Exception:
+            except ValueError:
                 expiration_cache[lot.expiration_date] = -1 # Cache failed parse as expired to skip
                 continue # skip unparseable
 

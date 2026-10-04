@@ -103,3 +103,8 @@
 **Vulnerability:** Broad except Exception block was used to handle Base64 decoding, potentially masking severe bugs or DoS vectors.
 **Learning:** Broad exception handling in Base64 decoding hides underlying application or logic bugs (e.g., TypeError).
 **Prevention:** Catch explicit validation exceptions like ValueError or binascii.Error.
+
+## 2026-10-04 - Specific Exception Handling for Date Parsing
+**Vulnerability:** Catching broad `Exception` during string and ISO date parsing masked potential fatal runtime failures (such as `KeyboardInterrupt`, memory errors, or type errors) and created unpredictable control flows.
+**Learning:** Date parsing errors via `datetime.fromisoformat` specifically raise `ValueError`. Catching broad `Exception` violates defensive programming and can mask deeper systemic bugs.
+**Prevention:** Catch specific exceptions (`except ValueError:`) around input parsing logic rather than generic `except Exception:`.
