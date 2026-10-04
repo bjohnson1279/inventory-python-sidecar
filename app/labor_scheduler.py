@@ -54,7 +54,7 @@ def predict_schedule(req: PredictScheduleRequest):
                 duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
                 if duration_hours <= 0:
                     duration_hours = 1.0
-            except Exception:
+            except ValueError:
                 duration_hours = 8.0 # fallback
             duration_cache[duration_key] = duration_hours
 

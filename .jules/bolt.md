@@ -115,3 +115,7 @@
 **Learning:** In Python, passing a dynamically calculated fallback value (e.g., `d.get("key", max(v))`) evaluates the calculation eagerly on *every* loop iteration, completely negating the intended caching/hoisting optimization and slowing down performance due to added dictionary overhead.
 **Action:** When falling back to an expensive calculation during dictionary lookup, use conditional logic (`d["key"] if "key" in d else expensive_func()`) to guarantee lazy evaluation.
 
+
+## 2026-09-11 - Thread Contention in FastApi synchronous handlers
+**Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
+**Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.

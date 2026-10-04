@@ -181,7 +181,7 @@ def detect_anomalies(req: AnomalyDetectRequest):
                         evidence={"isolation_score": float(score), "features": features[i]},
                         detected_at=now_iso
                     ))
-        except Exception:
+        except ValueError:
             pass 
 
     # 2. Cycle Count Discrepancy Analyzer
@@ -236,7 +236,7 @@ def detect_anomalies(req: AnomalyDetectRequest):
 
                 hours.append({"hour": hour, "entry": entry})
                 day_counts[day_str] = day_counts.get(day_str, 0) + 1
-            except Exception:
+            except ValueError:
                 pass
 
         if hours:
@@ -279,7 +279,7 @@ def detect_anomalies(req: AnomalyDetectRequest):
                             evidence={"date": day, "count": count, "mean": float(mean_counts)},
                             detected_at=now_iso
                         ))
-    except Exception:
+    except ValueError:
         pass
 
     # 4. Actor Risk Scorer

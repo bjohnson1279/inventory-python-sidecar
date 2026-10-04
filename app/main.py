@@ -102,7 +102,7 @@ def optimize_slotting(req: OptimizeRequest):
             try:
                 d_date = datetime.fromisoformat(day_str)
                 days_ago = (now - d_date).days
-            except Exception:
+            except ValueError:
                 try:
                     # Handle standard ISO dates and timezone specifiers
                     clean_date = d.date.replace("Z", "+00:00")
@@ -111,7 +111,7 @@ def optimize_slotting(req: OptimizeRequest):
                     if d_date.tzinfo is not None:
                         d_date = d_date.astimezone(None).replace(tzinfo=None)
                     days_ago = (now - d_date).days
-                except Exception:
+                except ValueError:
                     days_ago = 0
 
             # Time-decay factor: decay velocity by 2% per day ago (representing hot/seasonal velocity)
