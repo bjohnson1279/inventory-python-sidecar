@@ -118,3 +118,16 @@
 ## 2024-05-25 - Consolidate Multiple Default Values in Composite Cache Lookups
 **Learning:** When using a composite cache (e.g., storing a tuple of pre-calculated values for a key pair), extracting the fallback values using `.get(key, (default_val_1, default_val_2))` prevents independent evaluations. If the defaults were originally separate (e.g., `cost_pu = costs.get((s, d), 1.0)` and `penalty = combined_penalty_cache.get((s, d), 1.51)`), combining them into a single tuple lookup ensures efficient execution while maintaining precise default behavior.
 **Action:** When migrating multiple dictionary lookups to a single composite dictionary lookup, accurately map the original independent default values to a single tuple fallback in the `.get()` call to preserve logical correctness and optimize performance.
+
+## 2026-10-07 - Process Streamlining, Sibling Coalescence & Autoloading Invariants
+**Learning:**
+1. Fragmenting stub methods across multiple micro-PRs on the same class causes unavoidable sibling merge collisions and wasted CI cycles.
+2. Placing multiple domain services into a single file breaks Composer PSR-4 autoloader discovery in PHP, triggering fatal `Class not found` errors.
+3. Writing service calls against unverified entity methods causes fatal runtime errors.
+4. String-escaping markdown journal updates corrupts rendered formatting.
+
+**Action:**
+- **Coalesce Micro-PRs**: When implementing or scaffolding related controller endpoints, stub methods, or repository queries on a single class, consolidate all changes into a single coherent pull request. Never create separate fragmented PRs for each individual method of the same class.
+- **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
+- **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
+- **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.

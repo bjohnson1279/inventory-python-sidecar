@@ -108,3 +108,16 @@
 **Vulnerability:** Catching broad `Exception` during string and ISO date parsing masked potential fatal runtime failures (such as `KeyboardInterrupt`, memory errors, or type errors) and created unpredictable control flows.
 **Learning:** Date parsing errors via `datetime.fromisoformat` specifically raise `ValueError`. Catching broad `Exception` violates defensive programming and can mask deeper systemic bugs.
 **Prevention:** Catch specific exceptions (`except ValueError:`) around input parsing logic rather than generic `except Exception:`.
+
+## 2026-10-07 - Process Streamlining, Sibling Coalescence & Autoloading Invariants
+**Learning:**
+1. Fragmenting stub methods across multiple micro-PRs on the same class causes unavoidable sibling merge collisions and wasted CI cycles.
+2. Placing multiple domain services into a single file breaks Composer PSR-4 autoloader discovery in PHP, triggering fatal `Class not found` errors.
+3. Writing service calls against unverified entity methods causes fatal runtime errors.
+4. String-escaping markdown journal updates corrupts rendered formatting.
+
+**Action:**
+- **Coalesce Micro-PRs**: When implementing or scaffolding related controller endpoints, stub methods, or repository queries on a single class, consolidate all changes into a single coherent pull request. Never create separate fragmented PRs for each individual method of the same class.
+- **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
+- **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
+- **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
