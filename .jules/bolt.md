@@ -131,3 +131,10 @@
 - **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
 - **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
+## 2024-05-25 - Avoid Time Truncation in Date Differences
+**Learning:** When attempting to optimize caching for date parsing (e.g., `datetime.fromisoformat`) by truncating ISO strings to their date component (`[:10]`), the time defaults to midnight (`00:00:00`). If the resulting datetime is later used in time-sensitive arithmetic (like `(exp_dt - now).days`), this truncation alters the absolute time difference, potentially causing logical regressions (e.g., evaluating a future expiration as already expired).
+**Action:** Do not truncate the time component of datetime strings for caching purposes if the parsed datetime is used in sensitive interval or duration logic.
+
+## 2024-05-25 - Pre-calculate Redundant Multipliers Outside Evaluation Loops
+**Learning:** In optimization loops where a math operation involves constants relative to a specific entity (e.g., `(100.0 - best_rule.markdown_percentage) / 100.0` inside an inner loop evaluating lots), performing this math repeatedly creates unnecessary overhead.
+**Action:** Pre-calculate these multipliers outside the loop, storing them in a cache dictionary (e.g., mapping `rule_id` to the precalculated multiplier) to replace redundant subtraction and division with an O(1) dictionary lookup.
