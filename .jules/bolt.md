@@ -118,3 +118,11 @@
 ## 2024-05-25 - Consolidate Multiple Default Values in Composite Cache Lookups
 **Learning:** When using a composite cache (e.g., storing a tuple of pre-calculated values for a key pair), extracting the fallback values using `.get(key, (default_val_1, default_val_2))` prevents independent evaluations. If the defaults were originally separate (e.g., `cost_pu = costs.get((s, d), 1.0)` and `penalty = combined_penalty_cache.get((s, d), 1.51)`), combining them into a single tuple lookup ensures efficient execution while maintaining precise default behavior.
 **Action:** When migrating multiple dictionary lookups to a single composite dictionary lookup, accurately map the original independent default values to a single tuple fallback in the `.get()` call to preserve logical correctness and optimize performance.
+
+## 2024-05-25 - Avoid Time Truncation in Date Differences
+**Learning:** When attempting to optimize caching for date parsing (e.g., `datetime.fromisoformat`) by truncating ISO strings to their date component (`[:10]`), the time defaults to midnight (`00:00:00`). If the resulting datetime is later used in time-sensitive arithmetic (like `(exp_dt - now).days`), this truncation alters the absolute time difference, potentially causing logical regressions (e.g., evaluating a future expiration as already expired).
+**Action:** Do not truncate the time component of datetime strings for caching purposes if the parsed datetime is used in sensitive interval or duration logic.
+
+## 2024-05-25 - Pre-calculate Redundant Multipliers Outside Evaluation Loops
+**Learning:** In optimization loops where a math operation involves constants relative to a specific entity (e.g., `(100.0 - best_rule.markdown_percentage) / 100.0` inside an inner loop evaluating lots), performing this math repeatedly creates unnecessary overhead.
+**Action:** Pre-calculate these multipliers outside the loop, storing them in a cache dictionary (e.g., mapping `rule_id` to the precalculated multiplier) to replace redundant subtraction and division with an O(1) dictionary lookup.
