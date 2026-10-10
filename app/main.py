@@ -1,5 +1,5 @@
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 import time
 from fastapi import FastAPI
@@ -119,7 +119,7 @@ def optimize_slotting(req: OptimizeRequest):
         
     # 2. Calculate seasonal velocities
     # Items dispatched closer to now get higher weights
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     velocities = {}
     date_weights = {} # Optimization: cache expensive datetime parsing and weight calculation
     
@@ -132,17 +132,18 @@ def optimize_slotting(req: OptimizeRequest):
         if weight is None:
             try:
                 d_date = datetime.fromisoformat(day_str)
+                if d_date.tzinfo is None:
+                    d_date = d_date.replace(tzinfo=timezone.utc)
                 days_ago = (now - d_date).days
-            except ValueError:
+            except (ValueError, TypeError):
                 try:
                     # Handle standard ISO dates and timezone specifiers
                     clean_date = d.date.replace("Z", "+00:00")
                     d_date = datetime.fromisoformat(clean_date)
-                    # Convert both datetimes to offset-naive UTC to avoid comparison errors
-                    if d_date.tzinfo is not None:
-                        d_date = d_date.astimezone(None).replace(tzinfo=None)
+                    if d_date.tzinfo is None:
+                        d_date = d_date.replace(tzinfo=timezone.utc)
                     days_ago = (now - d_date).days
-                except ValueError:
+                except (ValueError, TypeError):
                     days_ago = 0
 
             # Time-decay factor: decay velocity by 2% per day ago (representing hot/seasonal velocity)

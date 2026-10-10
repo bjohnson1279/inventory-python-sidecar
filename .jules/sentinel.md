@@ -121,3 +121,7 @@
 - **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
 - **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
 - **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
+## 2024-10-10 - [Fix TypeError DoS in datetime parsing]
+**Vulnerability:** [Uncaught TypeError during offset-naive and offset-aware datetime subtraction, creating DoS vector]
+**Learning:** [Broad exception handling skipped TypeError during timezone calculation]
+**Prevention:** [Catch TypeError alongside ValueError during datetime.fromisoformat parsing]
