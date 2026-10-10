@@ -167,10 +167,11 @@ def optimize_rebalance(req: RebalanceRequest):
             }
 
     candidates = []
+    DEFAULT_PENALTY = (1.0, 1.51)
     for d in deficits:
         sku = d["sku"]
         dest_wh = d["wh"]
-        d_vel_max = max(d["vel"], 0.01)
+        d_vel_max = d["vel_max"]
         needed_qty = int((target - d["doc"]) * d_vel_max)
         
         if needed_qty <= 0:
@@ -179,14 +180,14 @@ def optimize_rebalance(req: RebalanceRequest):
         urgency_weight, priority = get_urgency_weight(d["doc"], target)
         urgency_factor = urgency_weight / d_vel_max
 
-        for s in surpluses_by_sku.get(sku, []):
+        for s in surpluses_by_sku.get(sku, ()):
             src_wh = s["wh"]
 
             transfer_qty = min(s["transfer_avail"], needed_qty)
             if transfer_qty < req.constraints.min_transfer_quantity:
                 continue
                 
-            cost_pu, penalty = composite_cache.get((src_wh, dest_wh), (1.0, 1.51)) # 1.0 + 1 * 0.5 + 0.01
+            cost_pu, penalty = composite_cache.get((src_wh, dest_wh), DEFAULT_PENALTY) # 1.0 + 1 * 0.5 + 0.01
 
             doc_improvement = transfer_qty / d_vel_max
 
