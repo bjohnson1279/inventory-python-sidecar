@@ -138,3 +138,11 @@
 ## 2024-05-25 - Pre-calculate Redundant Multipliers Outside Evaluation Loops
 **Learning:** In optimization loops where a math operation involves constants relative to a specific entity (e.g., `(100.0 - best_rule.markdown_percentage) / 100.0` inside an inner loop evaluating lots), performing this math repeatedly creates unnecessary overhead.
 **Action:** Pre-calculate these multipliers outside the loop, storing them in a cache dictionary (e.g., mapping `rule_id` to the precalculated multiplier) to replace redundant subtraction and division with an O(1) dictionary lookup.
+
+## 2026-09-11 - Thread Contention in FastApi synchronous handlers
+**Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
+**Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
+
+## 2026-10-10 - Avoid Redundant Lookups by Forwarding Cached Values in Intermediate Data Structures
+**Learning:** When building intermediate data structures (like candidates for rebalancing) in a multi-pass algorithm, carry forward any pre-calculated configuration values (like cost per unit) within the dictionaries themselves rather than performing redundant dictionary lookups (e.g., `costs.get()`) in subsequent loops that iterate over those structures.
+**Action:** Store pre-calculated or previously retrieved constants in the intermediate dictionaries (e.g., adding `cost_pu` to the candidate dictionary) so that subsequent loops can access them with an O(1) dictionary key access instead of repeating the original, more expensive cache or config lookup.
