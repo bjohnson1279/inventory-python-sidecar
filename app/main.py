@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.anomaly_detector import router as anomaly_router
@@ -29,6 +30,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://inventory-ai.internal"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 app.include_router(anomaly_router)
 app.include_router(rebalance_router)

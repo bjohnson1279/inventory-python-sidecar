@@ -82,3 +82,7 @@ def test_optimize_bounds():
     }
     response = client.post("/optimize", json=payload)
     assert response.status_code == 422
+def test_cors_headers():
+    res = client.options("/calculate-emissions?tenant_id=tenant-1", headers={"Origin": "https://inventory-ai.internal", "Access-Control-Request-Method": "GET"})
+    assert res.status_code == 200
+    assert res.headers.get("access-control-allow-origin") == "https://inventory-ai.internal"
