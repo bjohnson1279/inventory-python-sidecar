@@ -33,7 +33,7 @@ class OptimizeYieldRequest(BaseModel):
 @router.post("/optimize-yield", response_model=List[MarkdownSuggestion])
 def optimize_yield(req: OptimizeYieldRequest):
     suggestions = []
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     
     # Optimization: Cache datetime parsing to avoid expensive repeated fromisoformat calls
     expiration_cache = {}
@@ -52,16 +52,15 @@ def optimize_yield(req: OptimizeYieldRequest):
 
     # Simple evaluation engine
     for lot in req.lots:
-        days_until_exp = expiration_cache.get(lot.expiration_date)
+        day_str = lot.expiration_date[:10]
+        days_until_exp = expiration_cache.get(day_str)
         if days_until_exp is None:
             try:
-                exp_dt = datetime.fromisoformat(lot.expiration_date.replace("Z", "+00:00"))
-                if exp_dt.tzinfo is None:
-                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                exp_dt = datetime.fromisoformat(day_str)
                 days_until_exp = (exp_dt - now).days
-                expiration_cache[lot.expiration_date] = days_until_exp
+                expiration_cache[day_str] = days_until_exp
             except (ValueError, TypeError):
-                expiration_cache[lot.expiration_date] = -1 # Cache failed parse as expired to skip
+                expiration_cache[day_str] = -1 # Cache failed parse as expired to skip
                 continue # skip unparseable
 
         if days_until_exp < 0:
