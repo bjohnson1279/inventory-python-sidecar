@@ -149,3 +149,7 @@
 ## 2026-10-10 - Avoid Redundant Lookups by Forwarding Cached Values in Intermediate Data Structures
 **Learning:** When building intermediate data structures (like candidates for rebalancing) in a multi-pass algorithm, carry forward any pre-calculated configuration values (like cost per unit) within the dictionaries themselves rather than performing redundant dictionary lookups (e.g., `costs.get()`) in subsequent loops that iterate over those structures.
 **Action:** Store pre-calculated or previously retrieved constants in the intermediate dictionaries (e.g., adding `cost_pu` to the candidate dictionary) so that subsequent loops can access them with an O(1) dictionary key access instead of repeating the original, more expensive cache or config lookup.
+
+## 2023-11-20 - Avoid Intermediate List Allocation in Rate Limiting
+**Learning:** Using list comprehensions to filter out expired timestamps in rate limit tracking creates an O(N) allocation overhead per request, which can cause significant memory pressure. Furthermore, repeatedly scanning all tracked IPs to remove empty lists is extremely inefficient (O(M)).
+**Action:** Optimize rate limit tracking by using an index loop to find expired items and perform in-place slice deletion (`del reqs[:idx]`). Clean up empty tracking lists in O(1) time by checking only the currently active IP list instead of iterating the entire client map.

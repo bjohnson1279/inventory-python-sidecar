@@ -19,20 +19,25 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         client_ip = request.client.host if getattr(request, "client", None) and request.client.host else "unknown"
         now = time.time()
 
-        if client_ip not in self.clients:
-            self.clients[client_ip] = []
+        reqs = self.clients.get(client_ip)
+        if reqs is None:
+            reqs = []
+            self.clients[client_ip] = reqs
 
-        self.clients[client_ip] = [req_time for req_time in self.clients[client_ip] if now - req_time < self.window]
+        idx = 0
+        while idx < len(reqs) and now - reqs[idx] >= self.window:
+            idx += 1
+        if idx > 0:
+            del reqs[:idx]
 
-        if len(self.clients[client_ip]) >= self.requests:
+        if len(reqs) >= self.requests:
             return JSONResponse(status_code=429, content={"detail": "Too Many Requests"})
 
-        self.clients[client_ip].append(now)
+        reqs.append(now)
 
         # Memory cleanup: remove empty client entries
-        keys_to_delete = [ip for ip, reqs in self.clients.items() if not reqs]
-        for ip in keys_to_delete:
-            del self.clients[ip]
+        if not reqs:
+            del self.clients[client_ip]
 
         return await call_next(request)
 
