@@ -70,6 +70,11 @@ app.include_router(labor_router)
 app.include_router(yield_router)
 app.include_router(cv_router)
 
+@app.get("/health")
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "service": "inventory-python-sidecar"}
+
 class LocationInput(BaseModel):
     id: str = Field(..., max_length=255)
     grid_x: int = Field(..., alias="grid_x", ge=-100000, le=100000)
