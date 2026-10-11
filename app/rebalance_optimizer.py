@@ -167,10 +167,11 @@ def optimize_rebalance(req: RebalanceRequest):
             }
 
     candidates = []
+    DEFAULT_PENALTY = (1.0, 1.51)
     for d in deficits:
         sku = d["sku"]
         dest_wh = d["wh"]
-        d_vel_max = max(d["vel"], 0.01)
+        d_vel_max = d["vel_max"]
         needed_qty = int((target - d["doc"]) * d_vel_max)
         
         if needed_qty <= 0:
@@ -179,14 +180,14 @@ def optimize_rebalance(req: RebalanceRequest):
         urgency_weight, priority = get_urgency_weight(d["doc"], target)
         urgency_factor = urgency_weight / d_vel_max
 
-        for s in surpluses_by_sku.get(sku, []):
+        for s in surpluses_by_sku.get(sku, ()):
             src_wh = s["wh"]
 
             transfer_qty = min(s["transfer_avail"], needed_qty)
             if transfer_qty < req.constraints.min_transfer_quantity:
                 continue
                 
-            cost_pu, penalty = composite_cache.get((src_wh, dest_wh), (1.0, 1.51)) # 1.0 + 1 * 0.5 + 0.01
+            cost_pu, penalty = composite_cache.get((src_wh, dest_wh), DEFAULT_PENALTY) # 1.0 + 1 * 0.5 + 0.01
 
             doc_improvement = transfer_qty / d_vel_max
 
@@ -201,7 +202,7 @@ def optimize_rebalance(req: RebalanceRequest):
                 "doc_improvement": doc_improvement,
                 "urgency_weight": urgency_weight,
                 "priority": priority,
-                "cost": transfer_qty * cost_pu,
+                "cost_pu": cost_pu,
                 "src_doc": s["doc"],
                 "dest_doc": d["doc"],
                 "src_vel_max": s["vel_max"],
@@ -251,7 +252,7 @@ def optimize_rebalance(req: RebalanceRequest):
             dest_warehouse_id=dest,
             quantity=actual_qty,
             priority=c["priority"],
-            estimated_shipping_cost=actual_qty * costs.get((src, dest), 1.0),
+            estimated_shipping_cost=actual_qty * c["cost_pu"],
             source_current_doc=c["src_doc"],
             dest_current_doc=c["dest_doc"],
             source_projected_doc=src_proj_doc,

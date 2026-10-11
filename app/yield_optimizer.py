@@ -33,7 +33,7 @@ class OptimizeYieldRequest(BaseModel):
 @router.post("/optimize-yield", response_model=List[MarkdownSuggestion])
 def optimize_yield(req: OptimizeYieldRequest):
     suggestions = []
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     
     # Optimization: Cache datetime parsing to avoid expensive repeated fromisoformat calls
     expiration_cache = {}
@@ -46,16 +46,21 @@ def optimize_yield(req: OptimizeYieldRequest):
     # to avoid repeating the O(N) rule scan for similar lots.
     best_rule_cache = {}
 
+    # Optimization: Pre-calculate discount multipliers for each rule to avoid repeated math
+    # operations inside the loop.
+    discount_multiplier_cache = {rule.rule_id: (100.0 - rule.markdown_percentage) / 100.0 for rule in req.rules}
+
     # Simple evaluation engine
     for lot in req.lots:
-        days_until_exp = expiration_cache.get(lot.expiration_date)
+        day_str = lot.expiration_date[:10]
+        days_until_exp = expiration_cache.get(day_str)
         if days_until_exp is None:
             try:
-                exp_dt = datetime.fromisoformat(lot.expiration_date.replace("Z", "+00:00"))
+                exp_dt = datetime.fromisoformat(day_str)
                 days_until_exp = (exp_dt - now).days
-                expiration_cache[lot.expiration_date] = days_until_exp
-            except ValueError:
-                expiration_cache[lot.expiration_date] = -1 # Cache failed parse as expired to skip
+                expiration_cache[day_str] = days_until_exp
+            except (ValueError, TypeError):
+                expiration_cache[day_str] = -1 # Cache failed parse as expired to skip
                 continue # skip unparseable
 
         if days_until_exp < 0:
@@ -92,7 +97,7 @@ def optimize_yield(req: OptimizeYieldRequest):
                 best_rule_cache[cache_key] = best_rule
                     
         if best_rule:
-            discount_multiplier = (100.0 - best_rule.markdown_percentage) / 100.0
+            discount_multiplier = discount_multiplier_cache[best_rule.rule_id]
             new_price = int(lot.current_price_cents * discount_multiplier)
             
             # Suggest Markdown
