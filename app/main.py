@@ -1,9 +1,39 @@
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
+import time
 from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, requests: int = 100, window: int = 60):
+        super().__init__(app)
+        self.requests = requests
+        self.window = window
+        self.clients = {}
+
+    async def dispatch(self, request, call_next):
+        client_ip = request.client.host if getattr(request, "client", None) and request.client.host else "unknown"
+        now = time.time()
+
+        if client_ip not in self.clients:
+            self.clients[client_ip] = []
+
+        self.clients[client_ip] = [req_time for req_time in self.clients[client_ip] if now - req_time < self.window]
+
+        if len(self.clients[client_ip]) >= self.requests:
+            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"})
+
+        self.clients[client_ip].append(now)
+
+        # Memory cleanup: remove empty client entries
+        keys_to_delete = [ip for ip, reqs in self.clients.items() if not reqs]
+        for ip in keys_to_delete:
+            del self.clients[ip]
+
+        return await call_next(request)
 
 from app.anomaly_detector import router as anomaly_router
 from app.rebalance_optimizer import router as rebalance_router
@@ -29,6 +59,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests=100, window=60)
 
 app.include_router(anomaly_router)
 app.include_router(rebalance_router)
@@ -38,6 +69,11 @@ app.include_router(esg_router)
 app.include_router(labor_router)
 app.include_router(yield_router)
 app.include_router(cv_router)
+
+@app.get("/health")
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "service": "inventory-python-sidecar"}
 
 class LocationInput(BaseModel):
     id: str = Field(..., max_length=255)
@@ -88,7 +124,7 @@ def optimize_slotting(req: OptimizeRequest):
         
     # 2. Calculate seasonal velocities
     # Items dispatched closer to now get higher weights
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     velocities = {}
     date_weights = {} # Optimization: cache expensive datetime parsing and weight calculation
     
@@ -101,17 +137,18 @@ def optimize_slotting(req: OptimizeRequest):
         if weight is None:
             try:
                 d_date = datetime.fromisoformat(day_str)
+                if d_date.tzinfo is None:
+                    d_date = d_date.replace(tzinfo=timezone.utc)
                 days_ago = (now - d_date).days
-            except ValueError:
+            except (ValueError, TypeError):
                 try:
                     # Handle standard ISO dates and timezone specifiers
                     clean_date = d.date.replace("Z", "+00:00")
                     d_date = datetime.fromisoformat(clean_date)
-                    # Convert both datetimes to offset-naive UTC to avoid comparison errors
-                    if d_date.tzinfo is not None:
-                        d_date = d_date.astimezone(None).replace(tzinfo=None)
+                    if d_date.tzinfo is None:
+                        d_date = d_date.replace(tzinfo=timezone.utc)
                     days_ago = (now - d_date).days
-                except ValueError:
+                except (ValueError, TypeError):
                     days_ago = 0
 
             # Time-decay factor: decay velocity by 2% per day ago (representing hot/seasonal velocity)

@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -51,10 +51,14 @@ def predict_schedule(req: PredictScheduleRequest):
             try:
                 start_dt = datetime.fromisoformat(demand.period_start.replace("Z", "+00:00"))
                 end_dt = datetime.fromisoformat(demand.period_end.replace("Z", "+00:00"))
+                if start_dt.tzinfo is None:
+                    start_dt = start_dt.replace(tzinfo=timezone.utc)
+                if end_dt.tzinfo is None:
+                    end_dt = end_dt.replace(tzinfo=timezone.utc)
                 duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
                 if duration_hours <= 0:
                     duration_hours = 1.0
-            except ValueError:
+            except (ValueError, TypeError):
                 duration_hours = 8.0 # fallback
             duration_cache[duration_key] = duration_hours
 

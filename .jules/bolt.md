@@ -121,3 +121,31 @@
 ## 2026-10-31 - Immutable Tuple for Dictionary Fallbacks
 **Learning:** In highly iterated loops, using an empty list `[]` (or even a variable `EMPTY_LIST = []`) as a fallback in `.get(key, [])` allocates a new list on every single evaluation because arguments are eagerly evaluated before function invocation.
 **Action:** When a fallback iterable is required for a loop (like falling back to an empty collection to iterate over), use an empty tuple `()` (e.g., `.get(key, ())`), as Python reuses the same immutable empty tuple instance in memory, eliminating allocation overhead entirely.
+
+## 2026-10-07 - Process Streamlining, Sibling Coalescence & Autoloading Invariants
+**Learning:**
+1. Fragmenting stub methods across multiple micro-PRs on the same class causes unavoidable sibling merge collisions and wasted CI cycles.
+2. Placing multiple domain services into a single file breaks Composer PSR-4 autoloader discovery in PHP, triggering fatal `Class not found` errors.
+3. Writing service calls against unverified entity methods causes fatal runtime errors.
+4. String-escaping markdown journal updates corrupts rendered formatting.
+
+**Action:**
+- **Coalesce Micro-PRs**: When implementing or scaffolding related controller endpoints, stub methods, or repository queries on a single class, consolidate all changes into a single coherent pull request. Never create separate fragmented PRs for each individual method of the same class.
+- **Strict PSR-4 Isolation in PHP**: In PHP codebases, place every class, interface, and enum in its own file named `<ClassName>.php` matching its namespace path. Never combine multiple domain classes into a single file.
+- **Domain Contract Verification**: Always inspect entity and aggregate root definitions to verify exact method and property names before writing service logic or test fixtures.
+- **Clean Markdown Formatting**: Always append journal entries using actual newline characters, never literal string escape sequences.
+## 2024-05-25 - Avoid Time Truncation in Date Differences
+**Learning:** When attempting to optimize caching for date parsing (e.g., `datetime.fromisoformat`) by truncating ISO strings to their date component (`[:10]`), the time defaults to midnight (`00:00:00`). If the resulting datetime is later used in time-sensitive arithmetic (like `(exp_dt - now).days`), this truncation alters the absolute time difference, potentially causing logical regressions (e.g., evaluating a future expiration as already expired).
+**Action:** Do not truncate the time component of datetime strings for caching purposes if the parsed datetime is used in sensitive interval or duration logic.
+
+## 2024-05-25 - Pre-calculate Redundant Multipliers Outside Evaluation Loops
+**Learning:** In optimization loops where a math operation involves constants relative to a specific entity (e.g., `(100.0 - best_rule.markdown_percentage) / 100.0` inside an inner loop evaluating lots), performing this math repeatedly creates unnecessary overhead.
+**Action:** Pre-calculate these multipliers outside the loop, storing them in a cache dictionary (e.g., mapping `rule_id` to the precalculated multiplier) to replace redundant subtraction and division with an O(1) dictionary lookup.
+
+## 2026-09-11 - Thread Contention in FastApi synchronous handlers
+**Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
+**Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
+
+## 2026-10-10 - Avoid Redundant Lookups by Forwarding Cached Values in Intermediate Data Structures
+**Learning:** When building intermediate data structures (like candidates for rebalancing) in a multi-pass algorithm, carry forward any pre-calculated configuration values (like cost per unit) within the dictionaries themselves rather than performing redundant dictionary lookups (e.g., `costs.get()`) in subsequent loops that iterate over those structures.
+**Action:** Store pre-calculated or previously retrieved constants in the intermediate dictionaries (e.g., adding `cost_pu` to the candidate dictionary) so that subsequent loops can access them with an O(1) dictionary key access instead of repeating the original, more expensive cache or config lookup.
