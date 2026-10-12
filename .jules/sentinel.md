@@ -125,3 +125,8 @@
 **Vulnerability:** [Uncaught TypeError during offset-naive and offset-aware datetime subtraction, creating DoS vector]
 **Learning:** [Broad exception handling skipped TypeError during timezone calculation]
 **Prevention:** [Catch TypeError alongside ValueError during datetime.fromisoformat parsing]
+
+## 2024-10-27 - [FastAPI Middleware Execution Order Vulnerability]
+**Vulnerability:** SecurityHeadersMiddleware was bypassed when RateLimitMiddleware returned early (429 responses).
+**Learning:** In Starlette/FastAPI, middleware added last via `app.add_middleware()` wraps previously added middleware (executing outside-in). If an inner middleware returns a response directly (e.g., error or rate limit), outer middleware (like security headers added earlier in code) are bypassed.
+**Prevention:** Always add SecurityHeadersMiddleware LAST in the code so it becomes the outermost wrapper, ensuring headers are applied to all responses, including early-exit errors.

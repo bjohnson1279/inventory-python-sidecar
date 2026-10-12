@@ -86,3 +86,15 @@ def test_cors_headers():
     res = client.options("/calculate-emissions?tenant_id=tenant-1", headers={"Origin": "https://inventory-ai.internal", "Access-Control-Request-Method": "GET"})
     assert res.status_code == 200
     assert res.headers.get("access-control-allow-origin") == "https://inventory-ai.internal"
+
+def test_security_headers_on_429():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    test_client = TestClient(app, client=("192.168.1.100", 50000))
+    for _ in range(100):
+        test_client.get("/health")
+
+    res = test_client.get("/health")
+    assert res.status_code == 429
+    headers = res.headers
+    assert headers.get("X-Content-Type-Options") == "nosniff"
