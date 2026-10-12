@@ -14,6 +14,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests = requests
         self.window = window
         self.clients = {}
+        self.last_cleanup = time.time()
 
     async def dispatch(self, request, call_next):
         client_ip = request.client.host if getattr(request, "client", None) and request.client.host else "unknown"
@@ -29,10 +30,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         self.clients[client_ip].append(now)
 
-        # Memory cleanup: remove empty client entries
-        keys_to_delete = [ip for ip, reqs in self.clients.items() if not reqs]
-        for ip in keys_to_delete:
-            del self.clients[ip]
+        # Periodic memory cleanup for ALL clients
+        if now - self.last_cleanup > self.window:
+            keys_to_delete = [
+                ip for ip, reqs in self.clients.items()
+                if not reqs or now - reqs[-1] >= self.window
+            ]
+            for ip in keys_to_delete:
+                del self.clients[ip]
+            self.last_cleanup = now
 
         return await call_next(request)
 
