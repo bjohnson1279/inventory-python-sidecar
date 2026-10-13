@@ -153,3 +153,10 @@
 ## 2023-11-20 - Avoid Intermediate List Allocation in Rate Limiting
 **Learning:** Using list comprehensions to filter out expired timestamps in rate limit tracking creates an O(N) allocation overhead per request, which can cause significant memory pressure. Furthermore, repeatedly scanning all tracked IPs to remove empty lists is extremely inefficient (O(M)).
 **Action:** Optimize rate limit tracking by using an index loop to find expired items and perform in-place slice deletion (`del reqs[:idx]`). Clean up empty tracking lists in O(1) time by checking only the currently active IP list instead of iterating the entire client map.
+
+## 2026-09-11 - Thread Contention in FastApi synchronous handlers
+**Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
+**Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
+## 2026-10-10 - Eliminate Unused Lookup Dictionaries When Forwarding Cached Values
+**Learning:** When forwarding pre-calculated constants into intermediate data structures to avoid redundant lookups (as per the previous learning), leaving the initialization and population of the original lookup dictionary intact wastes CPU cycles and memory allocations.
+**Action:** When migrating to a forwarded-value pattern, always scan the codebase for any remaining `.get()` calls on the original lookup dictionary. If none exist, completely remove the dictionary's initialization and population logic to maximize the performance gain.
