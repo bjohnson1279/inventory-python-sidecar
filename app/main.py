@@ -14,10 +14,25 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests = requests
         self.window = window
         self.clients = {}
+        self.last_cleanup = time.time()
 
     async def dispatch(self, request, call_next):
         client_ip = request.client.host if getattr(request, "client", None) and request.client.host else "unknown"
         now = time.time()
+
+        if now - self.last_cleanup > self.window:
+            stale = []
+            for ip, r in self.clients.items():
+                idx = 0
+                while idx < len(r) and now - r[idx] >= self.window:
+                    idx += 1
+                if idx > 0:
+                    del r[:idx]
+                if not r:
+                    stale.append(ip)
+            for ip in stale:
+                del self.clients[ip]
+            self.last_cleanup = now
 
         reqs = self.clients.get(client_ip)
         if reqs is None:
@@ -34,10 +49,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=429, content={"detail": "Too Many Requests"})
 
         reqs.append(now)
-
-        # Memory cleanup: remove empty client entries
-        if not reqs:
-            del self.clients[client_ip]
 
         return await call_next(request)
 
@@ -65,7 +76,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(RateLimitMiddleware, requests=100, window=60)
-app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -74,6 +84,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(anomaly_router)
 app.include_router(rebalance_router)
