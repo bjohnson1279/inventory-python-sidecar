@@ -129,7 +129,6 @@ def optimize_rebalance(req: RebalanceRequest):
     matrix = {w.id: {} for w in req.warehouses}
     surpluses = []
     surpluses_by_sku = {}
-    surplus_lookup = {}
     deficits = []
 
     target = req.constraints.min_days_of_cover_target
@@ -150,7 +149,6 @@ def optimize_rebalance(req: RebalanceRequest):
             reserved = int(target * vel_max)
             surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max, "reserved": reserved, "transfer_avail": avail - reserved}
             surpluses.append(surplus_entry)
-            surplus_lookup[(stock.sku, stock.warehouse_id)] = surplus_entry
             if stock.sku not in surpluses_by_sku:
                 surpluses_by_sku[stock.sku] = []
             surpluses_by_sku[stock.sku].append(surplus_entry)
@@ -207,7 +205,9 @@ def optimize_rebalance(req: RebalanceRequest):
                 "dest_doc": d["doc"],
                 "src_vel_max": s["vel_max"],
                 "dest_vel_max": d_vel_max,
-                "needed_qty": needed_qty
+                "needed_qty": needed_qty,
+                "src_avail": s["avail"],
+                "src_reserved": s["reserved"]
             })
 
     candidates.sort(key=lambda x: x["score"], reverse=True)
@@ -228,11 +228,7 @@ def optimize_rebalance(req: RebalanceRequest):
         already_in = transferred_in[dest].get(sku, 0)
         
         # recalculate available transfer qty
-        s = surplus_lookup.get((sku, src))
-        if s:
-            src_avail = s["avail"] - already_out - s["reserved"]
-        else:
-            src_avail = 0
+        src_avail = c["src_avail"] - already_out - c["src_reserved"] if "src_avail" in c else 0
             
         needed = c["needed_qty"] - already_in
         
