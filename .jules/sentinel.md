@@ -130,3 +130,13 @@
 **Vulnerability:** SecurityHeadersMiddleware was bypassed when RateLimitMiddleware returned early (429 responses).
 **Learning:** In Starlette/FastAPI, middleware added last via `app.add_middleware()` wraps previously added middleware (executing outside-in). If an inner middleware returns a response directly (e.g., error or rate limit), outer middleware (like security headers added earlier in code) are bypassed.
 **Prevention:** Always add SecurityHeadersMiddleware LAST in the code so it becomes the outermost wrapper, ensuring headers are applied to all responses, including early-exit errors.
+
+## 2024-05-30 - DoS Memory Leak in Custom Rate Limiter
+**Vulnerability:** A custom in-memory rate limiter appended request timestamps to a list per client IP without periodically sweeping and removing stale clients. The per-request cleanup logic (`if not reqs: del clients[ip]`) was dead code because it executed immediately after appending a new timestamp. This allowed unconstrained memory growth from one-time visitors.
+**Learning:** In-memory caches and rate limiters must explicitly track a `last_cleanup` timestamp and perform full sweeps of stale keys (e.g., using a time window). Relying solely on per-request operations will fail to clean up entries for clients that stop making requests.
+**Prevention:** Implement explicit periodic garbage collection windows in custom memory structures, or prefer robust standard libraries like Redis for rate limiting in production.
+
+## 2024-05-30 - Middleware Stack Ordering Bypasses Security Headers
+**Vulnerability:** SecurityHeadersMiddleware was added before CORSMiddleware. Because Starlette processes middlewares in reverse order of addition on incoming requests, the CORS middleware handled preflight `OPTIONS` requests and returned early, bypassing the security headers entirely.
+**Learning:** Middlewares added last execute first. Security headers must be the absolute last middleware added (outermost layer) so they wrap all other early-returning middlewares (like CORS or Rate Limiters).
+**Prevention:** Always place global response-mutating middlewares (like security headers or request IDs) at the very bottom of the `app.add_middleware()` stack.
