@@ -105,21 +105,26 @@ def optimize_rebalance(req: RebalanceRequest):
             "total_transfers": 0, "total_cost": 0.0, "skus_improved": 0, "avg_doc_improvement": 0.0
         })
 
-    # Maps
-    costs = {}
-    for c in req.shipping_costs:
-        costs[(c.source_warehouse_id, c.dest_warehouse_id)] = c.cost_per_unit
-        
-    lead_times = {}
-    for l in req.lead_times:
-        lead_times[(l.source_warehouse_id, l.dest_warehouse_id)] = l.transit_days
-
     # Optimization: Pre-calculate combined penalty mapping to avoid repeated math and dict lookups in the inner O(N*M) loop
     composite_cache = {}
-    penalty_keys = set(costs.keys()).union(set(lead_times.keys()))
-    for k in penalty_keys:
-        c = costs.get(k, 1.0)
-        t = lead_times.get(k, 1)
+
+    # Pre-populate costs, assuming default lead time of 1
+    for c in req.shipping_costs:
+        k = (c.source_warehouse_id, c.dest_warehouse_id)
+        cost_pu = c.cost_per_unit
+        composite_cache[k] = [cost_pu, 1]
+
+    # Pre-populate lead times, merging with existing costs if they exist, or using default cost of 1.0
+    for l in req.lead_times:
+        k = (l.source_warehouse_id, l.dest_warehouse_id)
+        if k in composite_cache:
+            composite_cache[k][1] = l.transit_days
+        else:
+            composite_cache[k] = [1.0, l.transit_days]
+
+    # Calculate final composite values
+    for k, v in composite_cache.items():
+        c, t = v[0], v[1]
         composite_cache[k] = (c, c + (t * 0.5) + 0.01)
 
     forecasts = {}
