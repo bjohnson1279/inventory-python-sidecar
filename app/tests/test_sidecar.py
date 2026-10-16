@@ -35,6 +35,7 @@ def test_security_headers():
     assert headers.get("Content-Security-Policy") == "default-src 'self'"
     assert headers.get("Cache-Control") == "no-store"
     assert headers.get("Referrer-Policy") == "no-referrer"
+    assert headers.get("Permissions-Policy") == "geolocation=(), microphone=(), camera=()"
 
 def test_anomaly_detector_bounds():
     payload = {
@@ -98,3 +99,4 @@ def test_security_headers_on_429():
     assert res.status_code == 429
     headers = res.headers
     assert headers.get("X-Content-Type-Options") == "nosniff"
+    assert headers.get("Permissions-Policy") == "geolocation=(), microphone=(), camera=()"
