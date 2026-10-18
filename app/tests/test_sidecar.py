@@ -98,5 +98,6 @@ def test_security_headers_on_429():
     res = test_client.get("/health")
     assert res.status_code == 429
     headers = res.headers
+    assert headers.get("Retry-After") == "60"
     assert headers.get("X-Content-Type-Options") == "nosniff"
     assert headers.get("Permissions-Policy") == "geolocation=(), microphone=(), camera=()"

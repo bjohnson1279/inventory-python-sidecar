@@ -140,3 +140,8 @@
 **Vulnerability:** SecurityHeadersMiddleware was added before CORSMiddleware. Because Starlette processes middlewares in reverse order of addition on incoming requests, the CORS middleware handled preflight `OPTIONS` requests and returned early, bypassing the security headers entirely.
 **Learning:** Middlewares added last execute first. Security headers must be the absolute last middleware added (outermost layer) so they wrap all other early-returning middlewares (like CORS or Rate Limiters).
 **Prevention:** Always place global response-mutating middlewares (like security headers or request IDs) at the very bottom of the `app.add_middleware()` stack.
+
+## 2024-05-31 - HTTP 429 Responses Must Include Retry-After Headers
+**Vulnerability:** A custom rate limiter returned a 429 JSONResponse without a `Retry-After` header. This omission caused well-behaved clients to lack guidance on when to retry, leading to immediate retries and continued server load (self-DDoS).
+**Learning:** Returning HTTP 429 without explicit backoff instructions wastes connection resources and diminishes the effectiveness of the rate limit protection mechanism.
+**Prevention:** Always include the `Retry-After` header in 429 response payloads (e.g., `headers={"Retry-After": str(window_seconds)}`) to enforce proper client-side backoff and shield the server.

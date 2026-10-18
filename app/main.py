@@ -46,7 +46,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             del reqs[:idx]
 
         if len(reqs) >= self.requests:
-            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"})
+            # SECURITY ENHANCEMENT: Explicitly tell well-behaved clients to back off to prevent unnecessary traffic
+            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"}, headers={"Retry-After": str(self.window)})
 
         reqs.append(now)
 
