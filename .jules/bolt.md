@@ -164,3 +164,7 @@
 ## 2026-09-11 - Thread Contention in FastApi synchronous handlers
 **Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
 **Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
+
+## 2024-11-13 - Eliminate Dict Lookups by Tupling Forwarded Cached Values
+**Learning:** When sorting a list of objects and then storing a pre-calculated performance multiplier in a separate `discount_multiplier_cache` dictionary (keyed by `rule_id`) to be accessed inside a multi-pass evaluation loop, maintaining the separate dictionary is wasteful. The O(N) hash lookups inside the evaluation loop and the dictionary instantiation add unnecessary memory and CPU overhead.
+**Action:** When migrating to a forwarded-value pattern, always scan the codebase for any remaining `.get()` or `[]` calls on the original lookup dictionary. If none exist and the original objects are already iterated over, couple the pre-calculated value directly with the object via a tuple (e.g. `[(rule, multiplier) for rule in sorted_rules]`). This completely eliminates the dictionary's initialization, memory allocation, and the hash lookups during evaluation.

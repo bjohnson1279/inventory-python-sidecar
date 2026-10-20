@@ -40,15 +40,14 @@ def optimize_yield(req: OptimizeYieldRequest):
 
     # Optimization: Pre-sort rules by markdown percentage descending to find the best rule faster
     # with an early exit
-    sorted_rules = sorted(req.rules, key=lambda x: x.markdown_percentage, reverse=True)
+    sorted_rules = [
+        (rule, (100.0 - rule.markdown_percentage) / 100.0)
+        for rule in sorted(req.rules, key=lambda x: x.markdown_percentage, reverse=True)
+    ]
 
     # Optimization: Cache the best rule for a given (department, sku, days_until_exp)
     # to avoid repeating the O(N) rule scan for similar lots.
     best_rule_cache = {}
-
-    # Optimization: Pre-calculate discount multipliers for each rule to avoid repeated math
-    # operations inside the loop.
-    discount_multiplier_cache = {rule.rule_id: (100.0 - rule.markdown_percentage) / 100.0 for rule in req.rules}
 
     # Simple evaluation engine
     for lot in req.lots:
@@ -80,7 +79,7 @@ def optimize_yield(req: OptimizeYieldRequest):
             cache_hit = False
 
         if not cache_hit:
-            for rule in sorted_rules:
+            for rule, multiplier in sorted_rules:
                 # Rule applies if days_to_expiration threshold is met
                 if days_until_exp <= rule.days_to_expiration:
                     # Check optional filters
@@ -90,23 +89,23 @@ def optimize_yield(req: OptimizeYieldRequest):
                         continue
 
                     # Since rules are sorted by markdown descending, the first match is the best
-                    best_rule = rule
+                    best_rule = (rule, multiplier)
                     break
 
             if cache_key is not None:
                 best_rule_cache[cache_key] = best_rule
                     
         if best_rule:
-            discount_multiplier = discount_multiplier_cache[best_rule.rule_id]
+            rule_obj, discount_multiplier = best_rule
             new_price = int(lot.current_price_cents * discount_multiplier)
             
             # Suggest Markdown
             suggestions.append(MarkdownSuggestion(
                 variant_id=lot.variant_id,
-                rule_id=best_rule.rule_id,
+                rule_id=rule_obj.rule_id,
                 original_price_cents=lot.current_price_cents,
                 suggested_price_cents=new_price,
-                reason=f"FEFO Proximity: {days_until_exp} days until expiration (Rule: {best_rule.markdown_percentage}% off)"
+                reason=f"FEFO Proximity: {days_until_exp} days until expiration (Rule: {rule_obj.markdown_percentage}% off)"
             ))
 
     return suggestions
