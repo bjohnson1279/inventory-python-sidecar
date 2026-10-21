@@ -87,6 +87,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# SECURITY ENHANCEMENT: Middlewares are executed in reverse order of addition.
+# SecurityHeadersMiddleware MUST be added last so it acts as the outermost layer,
+# ensuring security headers are applied to all responses, including early-exit errors like 429s.
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(anomaly_router)
