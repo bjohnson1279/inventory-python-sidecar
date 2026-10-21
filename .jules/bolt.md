@@ -164,3 +164,6 @@
 ## 2026-09-11 - Thread Contention in FastApi synchronous handlers
 **Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
 **Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
+## 2026-11-05 - Preserve Negative Caching When Refactoring
+**Learning:** When refactoring optimization logic (like moving `discount_multiplier` to couple with `best_rule`), modifying the cache population condition from `if cache_key is not None:` to `if cache_key is not None and best_rule is not None:` breaks negative caching. This causes lots that do not match any rules to continually bypass the cache and trigger a full O(N) scan of the rules list on every iteration.
+**Action:** Always maintain negative caching functionality when refactoring cache population. Allow `None` or empty values to be cached for valid keys to prevent worst-case performance regressions on non-matching inputs.
