@@ -148,3 +148,8 @@
 **Vulnerability:** A custom rate limiter returned a 429 JSONResponse without a `Retry-After` header. This omission caused well-behaved clients to lack guidance on when to retry, leading to immediate retries and continued server load (self-DDoS).
 **Learning:** Returning HTTP 429 without explicit backoff instructions wastes connection resources and diminishes the effectiveness of the rate limit protection mechanism.
 **Prevention:** Always include the `Retry-After` header in 429 response payloads (e.g., `headers={"Retry-After": str(window_seconds)}`) to enforce proper client-side backoff and shield the server.
+
+## 2026-10-18 - Middleware Ordering Security Comment
+**Vulnerability:** In Starlette/FastAPI, middleware added last via `app.add_middleware()` executes first (wrapping earlier middlewares). If global response-mutating middleware like `SecurityHeadersMiddleware` is added before an early-exiting middleware (like `CORSMiddleware` handling OPTIONS requests or a rate limiter), the early-exiting middleware will bypass the security headers entirely.
+**Learning:** Middleware execution order is critical for security headers. The risk of future developers accidentally reordering these middleware declarations and bypassing security protections is high if the rationale for their specific placement is not documented inline.
+**Prevention:** Always add a clear, prominent security comment immediately above the critical middleware addition (`app.add_middleware(SecurityHeadersMiddleware)`) explaining that it MUST be added last to wrap all early-exiting middlewares, acting as a defensive guardrail against accidental reordering.
