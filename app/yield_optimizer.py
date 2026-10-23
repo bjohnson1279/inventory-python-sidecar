@@ -42,13 +42,13 @@ def optimize_yield(req: OptimizeYieldRequest):
     # with an early exit
     sorted_rules = sorted(req.rules, key=lambda x: x.markdown_percentage, reverse=True)
 
-    # Optimization: Cache the best rule for a given (department, sku, days_until_exp)
+    # Optimization: Couple the rule with its pre-calculated discount multiplier to eliminate
+    # dictionary hash lookups and extra memory allocations during evaluation.
+    sorted_rules_with_metrics = [(rule, (100.0 - rule.markdown_percentage) / 100.0) for rule in sorted_rules]
+
+    # Optimization: Cache the best rule and its multiplier for a given (department, sku, days_until_exp)
     # to avoid repeating the O(N) rule scan for similar lots.
     best_rule_cache = {}
-
-    # Optimization: Pre-calculate discount multipliers for each rule to avoid repeated math
-    # operations inside the loop.
-    discount_multiplier_cache = {rule.rule_id: (100.0 - rule.markdown_percentage) / 100.0 for rule in req.rules}
 
     # Simple evaluation engine
     for lot in req.lots:
@@ -69,18 +69,18 @@ def optimize_yield(req: OptimizeYieldRequest):
         try:
             cache_key = (lot.department, lot.sku, days_until_exp)
             if cache_key in best_rule_cache:
-                best_rule = best_rule_cache[cache_key]
+                best_rule, discount_multiplier = best_rule_cache[cache_key]
                 cache_hit = True
             else:
-                best_rule = None
+                best_rule, discount_multiplier = None, None
                 cache_hit = False
         except TypeError:
             cache_key = None
-            best_rule = None
+            best_rule, discount_multiplier = None, None
             cache_hit = False
 
         if not cache_hit:
-            for rule in sorted_rules:
+            for rule, multiplier in sorted_rules_with_metrics:
                 # Rule applies if days_to_expiration threshold is met
                 if days_until_exp <= rule.days_to_expiration:
                     # Check optional filters
@@ -91,13 +91,13 @@ def optimize_yield(req: OptimizeYieldRequest):
 
                     # Since rules are sorted by markdown descending, the first match is the best
                     best_rule = rule
+                    discount_multiplier = multiplier
                     break
 
             if cache_key is not None:
-                best_rule_cache[cache_key] = best_rule
+                best_rule_cache[cache_key] = (best_rule, discount_multiplier)
                     
         if best_rule:
-            discount_multiplier = discount_multiplier_cache[best_rule.rule_id]
             new_price = int(lot.current_price_cents * discount_multiplier)
             
             # Suggest Markdown
