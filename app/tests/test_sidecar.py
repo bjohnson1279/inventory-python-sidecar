@@ -1,7 +1,9 @@
+import os
 from fastapi.testclient import TestClient
 from app.main import app
 
-client = TestClient(app)
+os.environ["API_KEY"] = "test-secret-key"
+client = TestClient(app, headers={"X-API-Key": "test-secret-key"})
 
 def test_digital_twin_simulation():
     res = client.post("/simulate-warehouse", json={"warehouse_id": "WH-TEST", "order_wave_count": 10, "active_pickers_count": 5})
@@ -101,3 +103,9 @@ def test_security_headers_on_429():
     assert headers.get("Retry-After") == "60"
     assert headers.get("X-Content-Type-Options") == "nosniff"
     assert headers.get("Permissions-Policy") == "geolocation=(), microphone=(), camera=()"
+
+def test_missing_api_key():
+    unauthorized_client = TestClient(app)
+    res = unauthorized_client.get("/health")
+    assert res.status_code == 401
+    assert res.json() == {"detail": "Invalid or missing API Key"}
