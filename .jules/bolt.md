@@ -167,3 +167,7 @@
 ## 2026-11-05 - Preserve Negative Caching When Refactoring
 **Learning:** When refactoring optimization logic (like moving `discount_multiplier` to couple with `best_rule`), modifying the cache population condition from `if cache_key is not None:` to `if cache_key is not None and best_rule is not None:` breaks negative caching. This causes lots that do not match any rules to continually bypass the cache and trigger a full O(N) scan of the rules list on every iteration.
 **Action:** Always maintain negative caching functionality when refactoring cache population. Allow `None` or empty values to be cached for valid keys to prevent worst-case performance regressions on non-matching inputs.
+
+## 2026-11-20 - Eliminate Dead Code in Hot Loops
+**Learning:** Inside high-frequency or nested O(N*M) loops (like in `app/rebalance_optimizer.py`), populating separate tracker lists (e.g. `surpluses`) or computing variables that are never read by downstream logic creates completely unnecessary CPU overhead and memory pressure.
+**Action:** Always verify that every list allocation, dictionary key, and calculation performed inside a hot loop is actually consumed later in the algorithm. If it is dead code, eliminate it immediately to save CPU cycles and reduce garbage collection overhead.
