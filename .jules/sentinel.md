@@ -148,3 +148,13 @@
 **Vulnerability:** A custom rate limiter returned a 429 JSONResponse without a `Retry-After` header. This omission caused well-behaved clients to lack guidance on when to retry, leading to immediate retries and continued server load (self-DDoS).
 **Learning:** Returning HTTP 429 without explicit backoff instructions wastes connection resources and diminishes the effectiveness of the rate limit protection mechanism.
 **Prevention:** Always include the `Retry-After` header in 429 response payloads (e.g., `headers={"Retry-After": str(window_seconds)}`) to enforce proper client-side backoff and shield the server.
+
+## 2024-10-20 - [Sentinel] Fail-Secure Missing Configuration
+**Vulnerability:** A fail-open scenario where missing environment variables for API key validation (e.g., `os.environ.get("API_KEY")` returning `None`) could silently allow unauthorized access if not handled correctly.
+**Learning:** Security controls that rely on external configuration (like environment variables) must be designed to fail securely if that configuration is missing. A simple `if expected_key and input != expected_key:` allows access if `expected_key` is `None`.
+**Prevention:** Always implement explicit null checks that fail closed for critical security material (e.g., `if not expected_key or input != expected_key:`).
+
+## 2024-10-20 - [Sentinel] Architectural Regression from Global Auth
+**Vulnerability:** Adding global authentication (like a mandatory API Key dependency on the FastAPI app instance) in a microservices environment can break internal service-to-service communication that relies on private networks without tokens, as well as container health probes.
+**Learning:** Security enhancements must consider the broader architecture. Blanket authorization without inter-service token propagation causes regressions.
+**Prevention:** Do not apply global authentication mechanisms without verifying the authentication strategy of internal consumers and orchestrator health checks.

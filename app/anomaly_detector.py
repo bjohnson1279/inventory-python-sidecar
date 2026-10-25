@@ -236,7 +236,7 @@ def detect_anomalies(req: AnomalyDetectRequest):
 
                 hours.append({"hour": hour, "entry": entry})
                 day_counts[day_str] = day_counts.get(day_str, 0) + 1
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
 
         if hours:
