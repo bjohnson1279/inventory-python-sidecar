@@ -1,4 +1,3 @@
-import html
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
@@ -19,8 +18,7 @@ class CopilotResponse(BaseModel):
 def query_copilot(req: CopilotRequest):
     q = req.query.lower()
 
-    # SECURITY ENHANCEMENT: Sanitize reflected user input to prevent XSS
-    safe_query = html.escape(req.query)
+    safe_query = req.query
 
     if "risk" in q or "stockout" in q:
         intent = "STOCKOUT_RISK_ANALYSIS"

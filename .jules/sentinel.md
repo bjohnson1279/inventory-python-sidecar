@@ -153,3 +153,8 @@
 **Vulnerability:** In Starlette/FastAPI, middleware added last via `app.add_middleware()` executes first (wrapping earlier middlewares). If global response-mutating middleware like `SecurityHeadersMiddleware` is added before an early-exiting middleware (like `CORSMiddleware` handling OPTIONS requests or a rate limiter), the early-exiting middleware will bypass the security headers entirely.
 **Learning:** Middleware execution order is critical for security headers. The risk of future developers accidentally reordering these middleware declarations and bypassing security protections is high if the rationale for their specific placement is not documented inline.
 **Prevention:** Always add a clear, prominent security comment immediately above the critical middleware addition (`app.add_middleware(SecurityHeadersMiddleware)`) explaining that it MUST be added last to wrap all early-exiting middlewares, acting as a defensive guardrail against accidental reordering.
+
+## 2026-10-31 - Backend HTML Escaping Anti-Pattern
+**Vulnerability:** The backend applied HTML escaping to user input (via `html.escape()`) before returning it in an API response under the guise of XSS protection.
+**Learning:** Escaping HTML in backend services or APIs is an anti-pattern. APIs should return raw data; it is the responsibility of the presentation layer (e.g., frontend UI using React/Vue) to properly escape data before rendering it to the DOM. Backend escaping pollutes data sent to non-HTML destinations (like Slack, SMS, or emails) and can lead to double-escaping issues.
+**Prevention:** Never apply HTML escaping to data returned from backend APIs.
