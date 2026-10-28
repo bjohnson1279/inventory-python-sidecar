@@ -133,17 +133,18 @@ def optimize_rebalance(req: RebalanceRequest):
 
     matrix = {w.id: {} for w in req.warehouses}
     surpluses_by_sku = {}
-    deficits = []
+    deficits_by_sku = {}
 
     target = req.constraints.min_days_of_cover_target
 
     for stock in req.stock_levels:
-        vel = forecasts.get((stock.sku, stock.warehouse_id))
+        key = (stock.sku, stock.warehouse_id)
+        vel = forecasts[key] if key in forecasts else None
         if vel is None:
             continue
             
         avail = stock.on_hand - stock.allocated - stock.safety_stock
-        vel_max = max(vel, 0.01)
+        vel_max = vel if vel > 0.01 else 0.01
         doc = avail / vel_max
         
         status = "BALANCED"
@@ -151,13 +152,21 @@ def optimize_rebalance(req: RebalanceRequest):
             status = "SURPLUS"
             # Optimization: Pre-calculate reserved quantity to avoid repeated math in inner loops
             reserved = int(target * vel_max)
-            surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max, "reserved": reserved, "transfer_avail": avail - reserved}
+            surplus_entry = {"wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel_max": vel_max, "reserved": reserved, "transfer_avail": avail - reserved}
             if stock.sku not in surpluses_by_sku:
-                surpluses_by_sku[stock.sku] = []
-            surpluses_by_sku[stock.sku].append(surplus_entry)
+                surpluses_by_sku[stock.sku] = [surplus_entry]
+            else:
+                surpluses_by_sku[stock.sku].append(surplus_entry)
         elif doc < target:
             status = "DEFICIT"
-            deficits.append({"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max})
+            needed_qty = int((target - doc) * vel_max)
+            if needed_qty > 0:
+                urgency_weight, priority = get_urgency_weight(doc, target)
+                urgency_factor = urgency_weight / vel_max
+                deficit_entry = {"dest_wh": stock.warehouse_id, "dest_doc": doc, "dest_vel_max": vel_max, "needed_qty": needed_qty, "priority": priority, "urgency_factor": urgency_factor}
+                if stock.sku not in deficits_by_sku:
+                    deficits_by_sku[stock.sku] = []
+                deficits_by_sku[stock.sku].append(deficit_entry)
 
         if stock.warehouse_id in matrix:
             matrix[stock.warehouse_id][stock.sku] = {
@@ -171,6 +180,11 @@ def optimize_rebalance(req: RebalanceRequest):
     DEFAULT_PENALTY = (1.0, 1.51)
     for d in deficits:
         sku = d["sku"]
+
+        surplus_list = surpluses_by_sku.get(sku)
+        if not surplus_list:
+            continue
+
         dest_wh = d["wh"]
         d_vel_max = d["vel_max"]
         needed_qty = int((target - d["doc"]) * d_vel_max)
@@ -181,7 +195,7 @@ def optimize_rebalance(req: RebalanceRequest):
         urgency_weight, priority = get_urgency_weight(d["doc"], target)
         urgency_factor = urgency_weight / d_vel_max
 
-        for s in surpluses_by_sku.get(sku, ()):
+        for s in surplus_list:
             src_wh = s["wh"]
 
             transfer_qty = min(s["transfer_avail"], needed_qty)
