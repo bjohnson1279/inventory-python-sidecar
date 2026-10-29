@@ -132,7 +132,6 @@ def optimize_rebalance(req: RebalanceRequest):
         forecasts[(f.sku, f.warehouse_id)] = f.daily_velocity_30d
 
     matrix = {w.id: {} for w in req.warehouses}
-    surpluses = []
     surpluses_by_sku = {}
     deficits = []
 
@@ -153,7 +152,6 @@ def optimize_rebalance(req: RebalanceRequest):
             # Optimization: Pre-calculate reserved quantity to avoid repeated math in inner loops
             reserved = int(target * vel_max)
             surplus_entry = {"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max, "reserved": reserved, "transfer_avail": avail - reserved}
-            surpluses.append(surplus_entry)
             if stock.sku not in surpluses_by_sku:
                 surpluses_by_sku[stock.sku] = []
             surpluses_by_sku[stock.sku].append(surplus_entry)
