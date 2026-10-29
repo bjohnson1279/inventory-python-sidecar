@@ -14,3 +14,30 @@ def test_rebalance_bounds():
     }
     response = client.post("/rebalance-optimize", json=payload)
     assert response.status_code == 422
+
+
+def test_rebalance_optimizer_success():
+    payload = {
+        "warehouses": [{"id": "WH-1", "name": "Warehouse 1"}, {"id": "WH-2", "name": "Warehouse 2"}],
+        "stock_levels": [
+            {"sku": "SKU-1", "warehouse_id": "WH-1", "on_hand": 100},
+            {"sku": "SKU-1", "warehouse_id": "WH-2", "on_hand": 2}
+        ],
+        "demand_forecasts": [
+            {"sku": "SKU-1", "warehouse_id": "WH-1", "daily_velocity_30d": 1.0},
+            {"sku": "SKU-1", "warehouse_id": "WH-2", "daily_velocity_30d": 1.0}
+        ],
+        "lead_times": [{"source_warehouse_id": "WH-1", "dest_warehouse_id": "WH-2", "transit_days": 1}],
+        "shipping_costs": [{"source_warehouse_id": "WH-1", "dest_warehouse_id": "WH-2", "cost_per_unit": 1.0}],
+        "constraints": {"max_transfers_per_run": 10, "min_transfer_quantity": 5, "min_days_of_cover_target": 14.0}
+    }
+    response = client.post("/rebalance-optimize", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "recommendations" in data
+    assert len(data["recommendations"]) == 1
+    rec = data["recommendations"][0]
+    assert rec["sku"] == "SKU-1"
+    assert rec["source_warehouse_id"] == "WH-1"
+    assert rec["dest_warehouse_id"] == "WH-2"
+    assert rec["quantity"] >= 5
