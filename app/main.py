@@ -46,8 +46,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             del reqs[:idx]
 
         if len(reqs) >= self.requests:
-            # SECURITY ENHANCEMENT: Explicitly tell well-behaved clients to back off to prevent unnecessary traffic
-            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"}, headers={"Retry-After": str(self.window)})
+            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"})
 
         reqs.append(now)
 
@@ -70,11 +69,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         response.headers["Content-Security-Policy"] = "default-src 'self'"
         response.headers["Cache-Control"] = "no-store"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         return response
 
 app.add_middleware(RateLimitMiddleware, requests=100, window=60)
@@ -87,9 +88,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# SECURITY ENHANCEMENT: Middlewares are executed in reverse order of addition.
-# SecurityHeadersMiddleware MUST be added last so it acts as the outermost layer,
-# ensuring security headers are applied to all responses, including early-exit errors like 429s.
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(anomaly_router)

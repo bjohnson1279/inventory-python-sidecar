@@ -175,3 +175,7 @@
 ## 2026-11-20 - Group Lists into Dictionaries Before O(N*M) Loops
 **Learning:** Iterating over a flat list to find matches in a dictionary inside an O(N*M) loop is inefficient if the flat list can be logically grouped by the same lookup key. Converting the flat list into a dictionary (e.g. `deficits_by_sku`) allows iterating through dictionary keys and performing an O(1) existence check on the other dictionary (`surpluses_by_sku.get(sku)`), which completely culls the O(N*M) search space for non-matching SKUs.
 **Action:** When performing O(N*M) evaluation between two collections based on a shared key (like SKU), group both collections into dictionaries keyed by that shared identifier. Use `.get()` or `in` checks on the keys to safely skip permutations where matches are impossible, reducing the workload significantly.
+
+## 2026-10-29 - Remove unused list allocation in rebalance optimizer
+**Learning:** In `optimize_inventory_rebalancing`, `surpluses` was allocated and populated but never consumed because transfers are drawn directly from `surplus_warehouses`. Removing the unused list eliminates redundant list allocations and appends during optimization cycles.
+**Action:** Avoid allocating intermediate collections that are never referenced in downstream logic.
