@@ -242,3 +242,19 @@ def test_actor_risk_scoring():
     assert alert["confidence"] >= 0.7
     assert alert["severity"] in ["HIGH", "CRITICAL"]
     assert "shrinkage_ratio" in alert["evidence"]
+
+
+def test_api_key_auth_enforcement():
+    # Public health endpoint should succeed without auth
+    unauth_client = TestClient(app)
+    res_health = unauth_client.get("/health")
+    assert res_health.status_code == 200
+
+    # Protected endpoint should fail with 403 when missing key
+    res_no_key = unauth_client.post("/simulate-warehouse", json={"warehouse_id": "WH-TEST", "order_wave_count": 1, "active_pickers_count": 1})
+    assert res_no_key.status_code == 403
+
+    # Protected endpoint should fail with 403 when key is wrong
+    wrong_key_client = TestClient(app, headers={"X-API-Key": "wrong_key"})
+    res_wrong_key = wrong_key_client.post("/simulate-warehouse", json={"warehouse_id": "WH-TEST", "order_wave_count": 1, "active_pickers_count": 1})
+    assert res_wrong_key.status_code == 403
