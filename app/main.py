@@ -228,7 +228,12 @@ def optimize_slotting(req: OptimizeRequest):
         # (due to the monotonic decreasing nature of item["velocity"]) to speed up iteration
         if skip_count > 1000:
             current_vel = item["velocity"]
-            unmatched_by_dist = [x for x in unmatched_by_dist if x["location_id"] not in matched_locations and x["velocity"] < current_vel]
+            write_idx = 0
+            for x in unmatched_by_dist:
+                if x["location_id"] not in matched_locations and x["velocity"] < current_vel:
+                    unmatched_by_dist[write_idx] = x
+                    write_idx += 1
+            del unmatched_by_dist[write_idx:]
             skip_count = 0
 
         for target in unmatched_by_dist:
