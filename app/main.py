@@ -2,7 +2,10 @@ import math
 from datetime import datetime, timezone
 from typing import List, Optional
 import time
-from fastapi import FastAPI
+import os
+import secrets
+from fastapi import FastAPI, Depends, HTTPException, Security
+from fastapi.security.api_key import APIKeyHeader
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -61,7 +64,18 @@ from app.labor_scheduler import router as labor_router
 from app.yield_optimizer import router as yield_router
 from app.cv_gateway import router as cv_router
 
-app = FastAPI(title="Inventory AI Sidecar")
+API_KEY_NAME = "X-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    expected_api_key = os.environ.get("INVENTORY_API_KEY")
+    if not expected_api_key:
+        raise HTTPException(status_code=500, detail="API Key configuration is missing")
+    if not api_key_header or not secrets.compare_digest(api_key_header, expected_api_key):
+        raise HTTPException(status_code=403, detail="Could not validate API Key")
+    return api_key_header
+
+app = FastAPI(title="Inventory AI Sidecar", dependencies=[Depends(get_api_key)])
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):

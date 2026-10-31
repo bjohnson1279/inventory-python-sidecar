@@ -1,7 +1,11 @@
+import os
 from fastapi.testclient import TestClient
+
+os.environ["INVENTORY_API_KEY"] = "test_key"
+
 from app.main import app
 
-client = TestClient(app)
+client = TestClient(app, headers={"X-API-Key": "test_key"})
 
 def test_digital_twin_simulation():
     res = client.post("/simulate-warehouse", json={"warehouse_id": "WH-TEST", "order_wave_count": 10, "active_pickers_count": 5})
@@ -93,7 +97,7 @@ def test_cors_headers():
 def test_security_headers_on_429():
     from fastapi.testclient import TestClient
     from app.main import app
-    test_client = TestClient(app, client=("192.168.1.100", 50000))
+    test_client = TestClient(app, client=("192.168.1.100", 50000), headers={"X-API-Key": "test_key"})
     for _ in range(100):
         test_client.get("/health")
 

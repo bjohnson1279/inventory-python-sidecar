@@ -179,3 +179,6 @@
 ## 2026-10-29 - Remove unused list allocation in rebalance optimizer
 **Learning:** In `optimize_inventory_rebalancing`, `surpluses` was allocated and populated but never consumed because transfers are drawn directly from `surplus_warehouses`. Removing the unused list eliminates redundant list allocations and appends during optimization cycles.
 **Action:** Avoid allocating intermediate collections that are never referenced in downstream logic.
+## 2026-09-11 - Thread Contention in FastApi synchronous handlers
+**Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
+**Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
