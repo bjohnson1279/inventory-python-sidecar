@@ -158,3 +158,7 @@
 **Vulnerability:** The backend applied HTML escaping to user input (via html.escape()) before returning it in an API response under the guise of XSS protection.
 **Learning:** Escaping HTML in backend services or APIs is an anti-pattern. APIs should return raw data; it is the responsibility of the presentation layer (e.g., frontend UI using React/Vue) to properly escape data before rendering it to the DOM. Backend escaping pollutes data sent to non-HTML destinations (like Slack, SMS, or emails) and can lead to double-escaping issues.
 **Prevention:** Never apply HTML escaping to data returned from backend APIs.
+## 2026-11-01 - Constant-Time API Key Comparison
+**Vulnerability:** Comparing sensitive tokens like API keys using the standard `==` operator exposes the application to timing attacks, where an attacker can theoretically deduce the secret key by measuring the response time of the comparison.
+**Learning:** In Python, standard string equality checks (`==` or `!=`) exit early upon finding the first mismatched character. This slight time difference can be exploited to guess the token character by character.
+**Prevention:** Always use `secrets.compare_digest(a, b)` for comparing security tokens, API keys, passwords, or cryptographic hashes to ensure the comparison executes in constant time, regardless of where the mismatch occurs.

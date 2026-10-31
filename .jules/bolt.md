@@ -175,3 +175,7 @@
 ## 2026-11-20 - Group Lists into Dictionaries Before O(N*M) Loops
 **Learning:** Iterating over a flat list to find matches in a dictionary inside an O(N*M) loop is inefficient if the flat list can be logically grouped by the same lookup key. Converting the flat list into a dictionary (e.g. `deficits_by_sku`) allows iterating through dictionary keys and performing an O(1) existence check on the other dictionary (`surpluses_by_sku.get(sku)`), which completely culls the O(N*M) search space for non-matching SKUs.
 **Action:** When performing O(N*M) evaluation between two collections based on a shared key (like SKU), group both collections into dictionaries keyed by that shared identifier. Use `.get()` or `in` checks on the keys to safely skip permutations where matches are impossible, reducing the workload significantly.
+
+## 2026-09-11 - Thread Contention in FastApi synchronous handlers
+**Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
+**Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
