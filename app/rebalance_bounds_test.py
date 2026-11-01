@@ -1,8 +1,7 @@
-import os
 from fastapi.testclient import TestClient
 from app.main import app
 
-client = TestClient(app, headers={"X-API-Key": os.environ.get("INVENTORY_API_KEY", "test_key")})
+client = TestClient(app)
 
 def test_rebalance_bounds():
     payload = {

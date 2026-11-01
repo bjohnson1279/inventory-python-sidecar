@@ -182,3 +182,7 @@
 ## 2026-09-11 - Thread Contention in FastApi synchronous handlers
 **Learning:** Adding multiprocessing parameters like `n_jobs=-1` to Scikit-Learn algorithms (e.g. `IsolationForest`) inside synchronous API request handlers might degrade performance due to severe thread contention under load.
 **Action:** Avoid blindly optimizing model fitting with `n_jobs=-1` inside synchronous endpoint handlers; measure concurrent load performance first or offload heavy compute to an asynchronous task queue.
+
+## 2026-11-25 - Avoid Intermediate Array Allocations with In-place List Compaction
+**Learning:** Using a list comprehension to periodically clean up elements (e.g. `unmatched = [x for x in unmatched if condition]`) inside a hot loop (like the slotting optimization algorithm) causes significant $O(N)$ intermediate memory allocations and triggers garbage collection overhead.
+**Action:** Replace the list comprehension with an in-place array compaction algorithm. Maintain a write index (`write_idx = 0`), iterate over the list, copy the valid elements to the front (`lst[write_idx] = element; write_idx += 1`), and finally slice off the tail using `del lst[write_idx:]`. This achieves identical filtering functionality with strictly $O(1)$ memory allocation.
