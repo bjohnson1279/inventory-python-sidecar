@@ -49,7 +49,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             del reqs[:idx]
 
         if len(reqs) >= self.requests:
-            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"})
+            return JSONResponse(status_code=429, content={"detail": "Too Many Requests"}, headers={"Retry-After": str(self.window)})
 
         reqs.append(now)
 
@@ -106,6 +106,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# SECURITY: SecurityHeadersMiddleware MUST be added last to ensure it wraps all earlier early-returning
+# middlewares (like CORSMiddleware or RateLimitMiddleware) so headers are applied to all responses.
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(anomaly_router)
