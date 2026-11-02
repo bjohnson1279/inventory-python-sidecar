@@ -49,6 +49,16 @@ The sidecar acts as an auxiliary computational engine for core warehouse and inv
    pip install pytest httpx
    ```
 
+4. **Environment Variables Configuration:**
+   Configure the required environment variables:
+   - `INVENTORY_API_KEY`: Secret string required to authenticate requests to protected endpoints via the `X-API-Key` HTTP header.
+   - `APP_ENV` *(Optional)*: Set to `test` or `testing` during test runs (defaults to `test_key` if `APP_ENV=test` or when executed under `pytest`).
+
+   Example:
+   ```bash
+   export INVENTORY_API_KEY="your-secure-api-key"
+   ```
+
 ---
 
 ## Running the Application
@@ -89,13 +99,14 @@ python -m pytest
 python -m pytest app/tests/test_sidecar.py
 
 # Run rebalance boundary test suite
-python -m pytest app/rebalance_bounds_test.py
+python -m pytest app/tests/test_rebalance_bounds.py
 ```
 
 ---
 
 ## Security & Middleware Architecture
 
+- **API Key Authentication**: Protected endpoints enforce authentication via the `X-API-Key` header validated using constant-time comparison against `INVENTORY_API_KEY`. Public endpoints (`/health`, `/api/health`, `/docs`, `/openapi.json`) are exempted.
 - **Security Headers Middleware**: Enforces defense-in-depth HTTP headers (`Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Permissions-Policy`, `Cache-Control`, `Referrer-Policy`) across all endpoints.
 - **In-Memory Rate Limiting**: Token-bucket / sliding window rate limiter allowing up to 100 requests per 60-second window per client IP, returning `429 Too Many Requests` with a `Retry-After` header when triggered.
 - **CORS Protection**: Whitelists trusted origin `https://inventory-ai.internal`.
@@ -105,16 +116,18 @@ python -m pytest app/rebalance_bounds_test.py
 
 ## API Endpoint Reference
 
-| Route | Method | Parameters | Request Body | Response (200 OK) | Description & Use Case |
-|---|---|---|---|---|---|
-| `/health` | `GET` | None | None | `{"status": "ok", "service": "str"}` | Liveness / readiness health check for container orchestration and load balancers. |
-| `/api/health` | `GET` | None | None | `{"status": "ok", "service": "str"}` | Alternative prefixed health check endpoint. |
-| `/optimize` | `POST` | None | `OptimizeRequest` (`locations`, `inventory`, `dispatches`) | `List[SlottingSuggestion]` | Optimizes SKU storage slotting to minimize picker travel distance based on historical dispatch velocity. |
-| `/anomaly-detect` | `POST` | None | `AnomalyDetectRequest` (`ledger_entries`, `cycle_counts`, `scan_events`) | `AnomalyDetectResponse` (`anomalies_detected`, `alerts`, `overall_risk_score`) | Detects shrinkage, theft, and scan frequency anomalies across inventory movements using Isolation Forest. |
-| `/copilot/query` | `POST` | None | `CopilotRequest` (`query`, `tenant_id`) | `CopilotResponse` (`query`, `intent`, `insights`, `recommended_actions`) | Natural language query interface returning structured inventory insights and recommended workflows. |
-| `/cv/analyze-inbound` | `POST` | None | `AnalyzeInboundRequest` (`image_base64`, `lot_id`, `carrier_id`) | `AnalyzeInboundResponse` (`damage_detected`, `confidence`, `detected_labels`) | Validates inbound freight condition from camera capture feeds. |
-| `/simulate-warehouse` | `POST` | None | `SimulationRequest` (`warehouse_id`, `order_wave_count`, `active_pickers_count`) | `SimulationResponse` (`scenario_id`, `total_orders_processed`, `avg_order_cycle_time_min`, `utilization_rate`) | Simulates picking throughput and wave cycle times for capacity planning. |
-| `/calculate-emissions` | `GET` | `tenant_id` *(Optional)*, `period` *(Optional)* | None | `EsgReportResponse` (`tenant_id`, `period`, `total_emissions_co2e_kg`, `breakdown_by_mode`) | Computes freight transport carbon emissions breakdown for sustainability reporting. |
-| `/labor/predict-schedule` | `POST` | None | `PredictScheduleRequest` (`demand_forecasts`, `operators`) | `List[ShiftSuggestion]` | Schedules picker workforce shifts based on forecast demand waves. |
-| `/rebalance-optimize` | `POST` | None | `RebalanceRequest` (`warehouses`, `stock_levels`, `demand_forecasts`, `lead_times`, `shipping_costs`, `constraints`) | `RebalanceMatrix` (`recommendations`, `total_cost`, `total_units_transferred`) | Calculates optimal inter-warehouse inventory transfers to resolve localized stockouts. |
-| `/pricing/optimize-yield` | `POST` | None | `OptimizeYieldRequest` (`rules`, `lots`) | `List[MarkdownSuggestion]` | Generates FEFO-based markdown pricing suggestions for expiring perishable stock. |
+All protected endpoints require the `X-API-Key` request header matching the configured `INVENTORY_API_KEY`. Health check routes and OpenAPI schema routes are public.
+
+| Route | Method | Headers | Parameters | Request Body | Response (200 OK) | Description & Use Case |
+|---|---|---|---|---|---|---|
+| `/health` | `GET` | None *(Public)* | None | None | `{"status": "ok", "service": "str"}` | Liveness / readiness health check for container orchestration and load balancers. |
+| `/api/health` | `GET` | None *(Public)* | None | None | `{"status": "ok", "service": "str"}` | Alternative prefixed health check endpoint. |
+| `/optimize` | `POST` | `X-API-Key` *(Required)* | None | `OptimizeRequest` (`locations`, `inventory`, `dispatches`) | `List[SlottingSuggestion]` | Optimizes SKU storage slotting to minimize picker travel distance based on historical dispatch velocity. |
+| `/anomaly-detect` | `POST` | `X-API-Key` *(Required)* | None | `AnomalyDetectRequest` (`ledger_entries`, `cycle_counts`, `scan_events`) | `AnomalyDetectResponse` (`anomalies_detected`, `alerts`, `overall_risk_score`) | Detects shrinkage, theft, and scan frequency anomalies across inventory movements using Isolation Forest. |
+| `/copilot/query` | `POST` | `X-API-Key` *(Required)* | None | `CopilotRequest` (`query`) | `CopilotResponse` (`query`, `intent`, `insights`, `metricData`, `suggestedActions`) | Natural language query interface returning structured inventory insights and recommended workflows. |
+| `/cv/analyze-inbound` | `POST` | `X-API-Key` *(Required)* | None | `AnalyzeInboundRequest` (`image_base64`, `po_id` *(Optional)*) | `AnalyzeInboundResponse` (`dimensions`, `ocr_text`, `anomaly_score`, `has_damage`) | Validates inbound freight condition and extracts OCR text from camera capture feeds. |
+| `/simulate-warehouse` | `POST` | `X-API-Key` *(Required)* | None | `SimulationRequest` (`warehouse_id`, `order_wave_count`, `active_pickers_count`) | `SimulationResponse` (`scenario_id`, `duration_seconds`, `total_orders_processed`, `average_fulfillment_time_minutes`, `bottleneck_bin_id`, `throughput_per_hour`, `picker_utilization_rate`, `congestion_hotspots`) | Simulates picking throughput and wave cycle times for capacity planning. |
+| `/calculate-emissions` | `GET` | `X-API-Key` *(Required)* | `tenant_id` *(Optional)*, `period` *(Optional)* | None | `EsgReportResponse` (`tenant_id`, `period`, `transport_emissions_co2e_kg`, `facility_emissions_co2e_kg`, `total_emissions_co2e_kg`, `emissions_intensity_per_order`, `breakdown_by_mode`) | Computes freight transport carbon emissions breakdown for sustainability reporting. |
+| `/labor/predict-schedule` | `POST` | `X-API-Key` *(Required)* | None | `PredictScheduleRequest` (`demand_forecasts`, `operators`) | `List[ShiftSuggestion]` | Schedules picker workforce shifts based on forecast demand waves. |
+| `/rebalance-optimize` | `POST` | `X-API-Key` *(Required)* | None | `RebalanceRequest` (`warehouses`, `stock_levels`, `demand_forecasts`, `lead_times`, `shipping_costs`, `constraints`) | `RebalanceMatrix` (`recommendations`, `total_cost`, `total_units_transferred`) | Calculates optimal inter-warehouse inventory transfers to resolve localized stockouts. |
+| `/pricing/optimize-yield` | `POST` | `X-API-Key` *(Required)* | None | `OptimizeYieldRequest` (`rules`, `lots`) | `List[MarkdownSuggestion]` | Generates FEFO-based markdown pricing suggestions for expiring perishable stock. |
