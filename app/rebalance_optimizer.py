@@ -133,7 +133,7 @@ def optimize_rebalance(req: RebalanceRequest):
 
     matrix = {w.id: {} for w in req.warehouses}
     surpluses_by_sku = {}
-    deficits = []
+    deficits_by_sku = {}
 
     target = req.constraints.min_days_of_cover_target
 
@@ -157,7 +157,9 @@ def optimize_rebalance(req: RebalanceRequest):
             surpluses_by_sku[stock.sku].append(surplus_entry)
         elif doc < target:
             status = "DEFICIT"
-            deficits.append({"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max})
+            if stock.sku not in deficits_by_sku:
+                deficits_by_sku[stock.sku] = []
+            deficits_by_sku[stock.sku].append({"sku": stock.sku, "wh": stock.warehouse_id, "avail": avail, "doc": doc, "vel": vel, "vel_max": vel_max})
 
         if stock.warehouse_id in matrix:
             matrix[stock.warehouse_id][stock.sku] = {
@@ -169,20 +171,22 @@ def optimize_rebalance(req: RebalanceRequest):
 
     candidates = []
     DEFAULT_PENALTY = (1.0, 1.51)
-    for d in deficits:
-        sku = d["sku"]
-        dest_wh = d["wh"]
-        d_vel_max = d["vel_max"]
-        needed_qty = int((target - d["doc"]) * d_vel_max)
-        
-        if needed_qty <= 0:
+    for sku in surpluses_by_sku:
+        if sku not in deficits_by_sku:
             continue
+        for d in deficits_by_sku[sku]:
+            dest_wh = d["wh"]
+            d_vel_max = d["vel_max"]
+            needed_qty = int((target - d["doc"]) * d_vel_max)
 
-        urgency_weight, priority = get_urgency_weight(d["doc"], target)
-        urgency_factor = urgency_weight / d_vel_max
+            if needed_qty <= 0:
+                continue
 
-        for s in surpluses_by_sku.get(sku, ()):
-            src_wh = s["wh"]
+            urgency_weight, priority = get_urgency_weight(d["doc"], target)
+            urgency_factor = urgency_weight / d_vel_max
+
+            for s in surpluses_by_sku[sku]:
+                src_wh = s["wh"]
 
             transfer_qty = min(s["transfer_avail"], needed_qty)
             if transfer_qty < req.constraints.min_transfer_quantity:
