@@ -107,6 +107,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# SECURITY ENHANCEMENT: SecurityHeadersMiddleware MUST be added last to ensure
+# it wraps all early-exiting middlewares (like RateLimitMiddleware and CORSMiddleware)
+# and applies security headers to all responses, including early exits.
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(anomaly_router)
