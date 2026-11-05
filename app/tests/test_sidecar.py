@@ -259,3 +259,46 @@ def test_api_key_auth_enforcement():
     wrong_key_client = TestClient(app, headers={"X-API-Key": "wrong_key"})
     res_wrong_key = wrong_key_client.post("/simulate-warehouse", json={"warehouse_id": "WH-TEST", "order_wave_count": 1, "active_pickers_count": 1})
     assert res_wrong_key.status_code == 403
+
+
+def test_cv_analyze_inbound_valid_payload():
+    import base64
+    valid_b64 = base64.b64encode(b"sample_frame_buffer_data").decode("utf-8")
+    payload = {"image_base64": valid_b64, "po_id": "PO-10492"}
+    res = client.post("/cv/analyze-inbound", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "dimensions" in data
+    assert "length" in data["dimensions"] and data["dimensions"]["length"] >= 0.0
+    assert "width" in data["dimensions"] and data["dimensions"]["width"] >= 0.0
+    assert "height" in data["dimensions"] and data["dimensions"]["height"] >= 0.0
+    assert "ocr_text" in data and data["ocr_text"].startswith("SUPPLIER-")
+    assert "anomaly_score" in data and 0.0 <= data["anomaly_score"] <= 1.0
+    assert "has_damage" in data and isinstance(data["has_damage"], bool)
+    assert data["has_damage"] == (data["anomaly_score"] > 0.75)
+
+
+def test_cv_analyze_inbound_edge_cases():
+    import base64
+    # Missing required image_base64 field
+    res_missing = client.post("/cv/analyze-inbound", json={"po_id": "PO-100"})
+    assert res_missing.status_code == 422
+
+    # Invalid base64 encoded string
+    res_invalid_b64 = client.post("/cv/analyze-inbound", json={"image_base64": "invalid_base64!@#$%"})
+    assert res_invalid_b64.status_code == 400
+    assert res_invalid_b64.json()["detail"] == "Invalid base64 image data"
+
+    # Valid base64 without optional po_id
+    valid_b64 = base64.b64encode(b"test").decode("utf-8")
+    res_no_po = client.post("/cv/analyze-inbound", json={"image_base64": valid_b64})
+    assert res_no_po.status_code == 200
+
+    # Payload exceeding max_length constraint (5,000,000 characters)
+    res_oversized = client.post("/cv/analyze-inbound", json={"image_base64": "A" * 5000001})
+    assert res_oversized.status_code == 422
+
+    # Unauthenticated request
+    unauth_client = TestClient(app)
+    res_unauth = unauth_client.post("/cv/analyze-inbound", json={"image_base64": valid_b64})
+    assert res_unauth.status_code == 403
