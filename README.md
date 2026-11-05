@@ -100,6 +100,15 @@ python -m pytest app/tests/test_sidecar.py
 
 # Run rebalance boundary test suite
 python -m pytest app/tests/test_rebalance_bounds.py
+
+# Run rebalance optimizer heuristic tests
+python -m pytest app/tests/test_rebalance_optimizer.py
+
+# Run labor scheduler heuristic & boundary tests
+python -m pytest app/tests/test_labor_scheduler.py
+
+# Run yield & liquidation pricing optimizer tests
+python -m pytest app/tests/test_yield_optimizer.py
 ```
 
 ---
@@ -117,6 +126,8 @@ python -m pytest app/tests/test_rebalance_bounds.py
 ## API Endpoint Reference
 
 All protected endpoints require the `X-API-Key` request header matching the configured `INVENTORY_API_KEY`. Health check routes and OpenAPI schema routes are public.
+
+For detailed request and response payload schemas, field-level constraints, parameter definitions, and end-to-end integration workflows, refer to the [Dedicated API Documentation](docs/api/README.md).
 
 | Route | Method | Headers | Parameters | Request Body | Response (200 OK) | Description & Use Case |
 |---|---|---|---|---|---|---|
