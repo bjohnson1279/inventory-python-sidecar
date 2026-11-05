@@ -176,7 +176,7 @@ Performs multi-vector anomaly detection across inventory ledger entries, cycle c
   - **Status**: `200 OK`
   - **Schema** (`AnomalyDetectResponse`):
     - `alerts` *(Array of AnomalyAlert)*:
-      - `alert_type` *(String)*: Category (`"UNUSUAL_ADJUSTMENT"`, `"CYCLE_COUNT_DISCREPANCY"`, `"AFTER_HOURS_BURST"`, `"HIGH_RISK_ACTOR"`).
+      - `alert_type` *(String)*: Category (`"SHRINKAGE_PATTERN"`, `"COUNT_DISCREPANCY"`, `"TIMING_ANOMALY"`, `"ACTOR_RISK"`).
       - `severity` *(String)*: `"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, or `"LOW"`.
       - `confidence` *(Float)*: Confidence score between 0.0 and 1.0.
       - `sku` *(String or null)*: Associated SKU.
@@ -187,9 +187,11 @@ Performs multi-vector anomaly detection across inventory ledger entries, cycle c
       - `evidence` *(Object)*: Quantitative statistical evidence.
       - `detected_at` *(String)*: UTC timestamp of detection.
     - `summary` *(Object)*:
-      - `total_alerts` *(Integer)*: Total count of alerts generated.
-      - `high_severity_count` *(Integer)*: Number of CRITICAL or HIGH alerts.
-      - `average_confidence` *(Float)*: Mean confidence score across alerts.
+      - `total_critical` *(Integer)*: Total critical-severity alerts.
+      - `total_high` *(Integer)*: Total high-severity alerts.
+      - `total_medium` *(Integer)*: Total medium-severity alerts.
+      - `total_low` *(Integer)*: Total low-severity alerts.
+      - `overall_risk_score` *(Float)*: Average risk confidence score across alerts.
 - **Real-World Workflow**: Scheduled nightly or triggered after inventory cycle counts to flag theft, phantom inventory, or employee scanning anomalies for warehouse loss prevention teams.
 
 ---
@@ -392,7 +394,7 @@ Computes optimal inter-facility stock transfers to rebalance inventory across wa
       - `source_projected_doc` *(Float)*: Origin projected Days of Cover post-transfer.
       - `dest_projected_doc` *(Float)*: Destination projected Days of Cover post-transfer.
       - `urgency_reason` *(String)*: Rationale for transfer priority.
-    - `matrix` *(Object)*: Source-destination transfer volume matrix.
+    - `matrix` *(Object)*: Nested mapping of `warehouse_id` to `sku` dictionary containing `on_hand`, `available`, `doc` (Days of Cover), and `status` (`"BALANCED"`, `"SURPLUS"`, `"DEFICIT"`).
     - `summary` *(Object)*: Aggregate statistics (`total_transfers`, `total_cost`, `skus_improved`, `avg_doc_improvement`).
 - **Real-World Workflow**: Executed daily or bi-weekly by multi-echelon inventory planning engines to trigger inter-warehouse transfer orders.
 
