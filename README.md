@@ -109,6 +109,9 @@ python -m pytest app/tests/test_labor_scheduler.py
 
 # Run yield & liquidation pricing optimizer tests
 python -m pytest app/tests/test_yield_optimizer.py
+
+# Run warehouse slotting optimizer tests
+python -m pytest app/tests/test_slotting_optimizer.py
 ```
 
 ---
