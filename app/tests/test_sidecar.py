@@ -302,3 +302,125 @@ def test_cv_analyze_inbound_edge_cases():
     unauth_client = TestClient(app)
     res_unauth = unauth_client.post("/cv/analyze-inbound", json={"image_base64": valid_b64})
     assert res_unauth.status_code == 403
+
+
+def test_anomaly_detector_isolation_forest_shrinkage_pattern():
+    from unittest.mock import patch, MagicMock
+    import numpy as np
+
+    mock_iso = MagicMock()
+    mock_iso.decision_function.return_value = np.array([-0.65, 0.1, 0.2, 0.1, 0.1])
+
+    entries = [
+        {
+            "sku": f"SKU-{i}",
+            "location_id": f"LOC-{i}",
+            "quantity": -10,
+            "reason": "shrinkage" if i == 0 else "damage",
+            "actor_id": f"ACT-{i}",
+            "occurred_at": "2023-10-12T14:30:00Z"
+        }
+        for i in range(5)
+    ]
+
+    with patch("app.anomaly_detector.IsolationForest", return_value=mock_iso):
+        res = client.post("/anomaly-detect", json={"ledger_entries": entries, "cycle_counts": [], "scan_events": []})
+
+    assert res.status_code == 200
+    data = res.json()
+    shrinkage_alerts = [a for a in data["alerts"] if a["alert_type"] == "SHRINKAGE_PATTERN"]
+    assert len(shrinkage_alerts) == 1
+    alert = shrinkage_alerts[0]
+    assert alert["confidence"] == 0.65
+    assert alert["severity"] == "HIGH"
+    assert alert["location_id"] == "LOC-0"
+    assert alert["actor_id"] == "ACT-0"
+    assert alert["evidence"]["isolation_score"] == -0.65
+    assert alert["evidence"]["features"] == [10, 1, 0, 0, 1, 10.0]
+
+
+def test_anomaly_detector_isolation_forest_value_error_handling():
+    from unittest.mock import patch
+
+    entries = [
+        {
+            "sku": f"SKU-{i}",
+            "location_id": f"LOC-{i}",
+            "quantity": -10,
+            "reason": "shrinkage",
+            "actor_id": f"ACT-{i}",
+            "occurred_at": "2023-10-12T14:30:00Z"
+        }
+        for i in range(5)
+    ]
+
+    with patch("app.anomaly_detector.IsolationForest", side_effect=ValueError("Fitting failed")):
+        res = client.post("/anomaly-detect", json={"ledger_entries": entries, "cycle_counts": [], "scan_events": []})
+
+    assert res.status_code == 200
+    data = res.json()
+    shrinkage_alerts = [a for a in data["alerts"] if a["alert_type"] == "SHRINKAGE_PATTERN"]
+    assert len(shrinkage_alerts) == 0
+
+
+def test_anomaly_detector_temporal_timestamp_parsing_fallbacks():
+    entries = [
+        {
+            "sku": "SKU-TS1",
+            "location_id": "LOC-TS1",
+            "quantity": 10,
+            "reason": "receipt",
+            "actor_id": "ACT-TS",
+            "occurred_at": "2023-10-12T15:30:00+02:00"
+        },
+        {
+            "sku": "SKU-TS2",
+            "location_id": "LOC-TS2",
+            "quantity": 10,
+            "reason": "receipt",
+            "actor_id": "ACT-TS",
+            "occurred_at": "2023-10-12 16:00:00"
+        },
+        {
+            "sku": "SKU-TS3",
+            "location_id": "LOC-TS3",
+            "quantity": 10,
+            "reason": "receipt",
+            "actor_id": "ACT-TS",
+            "occurred_at": "invalid-timestamp"
+        }
+    ]
+    res = client.post("/anomaly-detect", json={"ledger_entries": entries, "cycle_counts": [], "scan_events": []})
+    assert res.status_code == 200
+
+
+def test_copilot_query_intent_branches_and_boundaries():
+    test_cases = [
+        ("Tell me about stockout chances", "STOCKOUT_RISK_ANALYSIS"),
+        ("Are we experiencing shrinkage?", "SHRINKAGE_ANOMALY_QUERY"),
+        ("Any discrepancy in B-104?", "SHRINKAGE_ANOMALY_QUERY"),
+        ("Report on theft in warehouse", "SHRINKAGE_ANOMALY_QUERY"),
+        ("What are inventory levels today?", "GENERAL_INVENTORY_QUERY"),
+    ]
+    for q, exp_intent in test_cases:
+        r = client.post("/copilot/query", json={"query": q})
+        assert r.status_code == 200
+        d = r.json()
+        assert d["intent"] == exp_intent
+        assert d["query"] == q
+        assert len(d["insights"]) > 0
+        assert len(d["suggestedActions"]) > 0
+        assert isinstance(d["metricData"], dict)
+
+    # Max length boundary (1000 characters)
+    r_max = client.post("/copilot/query", json={"query": "x" * 1000})
+    assert r_max.status_code == 200
+    assert r_max.json()["intent"] == "GENERAL_INVENTORY_QUERY"
+
+    # Exceeding length boundary (1001 characters)
+    r_over = client.post("/copilot/query", json={"query": "x" * 1001})
+    assert r_over.status_code == 422
+
+    # Missing query field
+    r_missing = client.post("/copilot/query", json={})
+    assert r_missing.status_code == 422
