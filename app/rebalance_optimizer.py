@@ -190,34 +190,36 @@ def optimize_rebalance(req: RebalanceRequest):
             for s in s_list:
                 src_wh = s["wh"]
 
-            transfer_qty = min(s["transfer_avail"], needed_qty)
-            if transfer_qty < req.constraints.min_transfer_quantity:
-                continue
-                
-            cost_pu, penalty = composite_cache.get((src_wh, dest_wh), DEFAULT_PENALTY) # 1.0 + 1 * 0.5 + 0.01
+                transfer_qty = min(s["transfer_avail"], needed_qty)
+                if transfer_qty < req.constraints.min_transfer_quantity:
+                    continue
 
-            doc_improvement = transfer_qty / d_vel_max
+                cost_pu, penalty = composite_cache.get((src_wh, dest_wh), DEFAULT_PENALTY) # 1.0 + 1 * 0.5 + 0.01
 
-            score = (transfer_qty * urgency_factor) / penalty
+                doc_improvement = transfer_qty / d_vel_max
 
-            candidates.append({
-                "sku": sku,
-                "src": src_wh,
-                "dest": dest_wh,
-                "qty": transfer_qty,
-                "score": score,
-                "doc_improvement": doc_improvement,
-                "urgency_weight": urgency_weight,
-                "priority": priority,
-                "cost_pu": cost_pu,
-                "src_doc": s["doc"],
-                "dest_doc": d["doc"],
-                "src_vel_max": s["vel_max"],
-                "dest_vel_max": d_vel_max,
-                "needed_qty": needed_qty,
-                "src_avail": s["avail"],
-                "src_reserved": s["reserved"]
-            })
+                # Optimization: Properly indent candidate generation to evaluate all surplus sources for a given deficit instead of just the last one in the list.
+                # Measurement: Increases evaluated candidate pairs, reducing total transfer costs by selecting optimal source locations.
+                score = (transfer_qty * urgency_factor) / penalty
+
+                candidates.append({
+                    "sku": sku,
+                    "src": src_wh,
+                    "dest": dest_wh,
+                    "qty": transfer_qty,
+                    "score": score,
+                    "doc_improvement": doc_improvement,
+                    "urgency_weight": urgency_weight,
+                    "priority": priority,
+                    "cost_pu": cost_pu,
+                    "src_doc": s["doc"],
+                    "dest_doc": d["doc"],
+                    "src_vel_max": s["vel_max"],
+                    "dest_vel_max": d_vel_max,
+                    "needed_qty": needed_qty,
+                    "src_avail": s["avail"],
+                    "src_reserved": s["reserved"]
+                })
 
     candidates.sort(key=lambda x: x["score"], reverse=True)
     
