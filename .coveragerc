@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = app
+omit = app/tests/*
+
+[report]
+fail_under = 93
+show_missing = True
+precision = 2
